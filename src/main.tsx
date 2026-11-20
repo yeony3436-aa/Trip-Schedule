@@ -13,10 +13,8 @@ import {
   Copy,
   Check,
   Navigation,
-  SquareParking,
   Snowflake,
   Phone,
-  Star,
   ExternalLink,
   CalendarDays,
   ClipboardCheck,
@@ -26,15 +24,15 @@ import {
   CreditCard,
   CircleCheck,
   TriangleAlert,
-  Sunset,
   ChevronDown,
   CarFront,
   UtensilsCrossed,
+  Lightbulb,
 } from "lucide-react";
 import {
   days,
   drive,
-  foods,
+  meals,
   places,
   prep,
   refunders,
@@ -43,8 +41,8 @@ import {
   buys,
   cards,
   coupons,
-  type Deal,
   FLIGHT_OUT,
+  type Deal,
   type Kind,
   type Place,
 } from "./data";
@@ -54,7 +52,6 @@ const kindIcon: Record<Kind, React.ReactNode> = {
   plane: <Plane />,
   car: <CarFront />,
   drive: <Route />,
-  park: <SquareParking />,
   spot: <MapPin />,
   food: <Utensils />,
   coffee: <Coffee />,
@@ -66,9 +63,7 @@ const kindIcon: Record<Kind, React.ReactNode> = {
 const prepIcon: Record<string, React.ReactNode> = {
   clipboard: <ClipboardCheck />,
   wifi: <Wifi />,
-  car: <Car />,
   snow: <Snowflake />,
-  route: <Route />,
   shield: <ShieldCheck />,
   file: <FileText />,
   card: <CreditCard />,
@@ -77,6 +72,8 @@ const prepIcon: Record<string, React.ReactNode> = {
 
 const mapUrl = (p: Place) =>
   p.url ?? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.q);
+
+const altLabel = (key: string) => (key.includes("Park") ? "여분" : "대안");
 
 const store = {
   get<T>(k: string, d: T): T {
@@ -96,11 +93,19 @@ const store = {
   },
 };
 
+function usePersist<T>(key: string, init: T) {
+  const [v, setV] = useState<T>(() => store.get(key, init));
+  useEffect(() => {
+    store.set(key, v);
+  }, [key, v]);
+  return [v, setV] as const;
+}
+
 function CopyCode({ code }: { code: string }) {
   const [ok, setOk] = useState(false);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(code.replace(/\s/g, " "));
+      await navigator.clipboard.writeText(code);
     } catch {
       const t = document.createElement("textarea");
       t.value = code;
@@ -114,69 +119,74 @@ function CopyCode({ code }: { code: string }) {
   };
   return (
     <button className={"mapcode" + (ok ? " ok" : "")} onClick={copy} title="맵코드 복사">
-      <Navigation size={13} />
+      <Navigation size={12} />
       <span>{code}</span>
-      {ok ? <Check size={13} /> : <Copy size={13} />}
+      {ok ? <Check size={12} /> : <Copy size={12} />}
     </button>
   );
 }
 
-function PlaceCard({ k, compact }: { k: string; compact?: boolean }) {
-  const p = places[k];
-  const alts = (p.alt ? ([] as string[]).concat(p.alt) : []).map((a) => places[a]);
+function Actions({ p }: { p: Place }) {
   return (
-    <div className={"place" + (compact ? " compact" : "")}>
-      <div className="placeHead">
+    <div className="actions">
+      {p.mapcode && <CopyCode code={p.mapcode} />}
+      {p.tel && (
+        <a className="btn" href={"tel:" + p.tel} aria-label="전화">
+          <Phone size={13} />
+        </a>
+      )}
+      <a className="btn primary" href={mapUrl(p)} target="_blank" rel="noreferrer">
+        <MapPin size={13} />
+        지도
+      </a>
+    </div>
+  );
+}
+
+/** 장소 한 줄: 이름·설명 + 버튼 */
+function PlaceRow({ k, label }: { k: string; label?: string }) {
+  const p = places[k];
+  return (
+    <div className="placeRow">
+      <div className="placeText">
+        {label && <span className="tag">{label}</span>}
         <b>{p.name}</b>
         <small>{p.meta}</small>
       </div>
-      <div className="placeActions">
-        {p.mapcode && <CopyCode code={p.mapcode} />}
-        {p.tel && (
-          <a className="ghost" href={"tel:" + p.tel}>
-            <Phone size={13} />
-            전화
-          </a>
-        )}
-        <a className="primary" href={mapUrl(p)} target="_blank" rel="noreferrer">
-          <MapPin size={13} />
-          지도
-          <ExternalLink size={12} />
-        </a>
-      </div>
-      {!compact && alts.map((alt) => (
-        <div className="alt" key={alt.name}>
-          <span className="altLabel">{alt.name.startsWith("[대안]") ? "대안" : "여분"}</span>
-          <div className="altBody">
-            <b>{alt.name.replace(/^\[.*?\]\s*/, "")}</b>
-            <small>{alt.meta}</small>
-          </div>
-          <div className="placeActions">
-            {alt.mapcode && <CopyCode code={alt.mapcode} />}
-            <a className="ghost" href={mapUrl(alt)} target="_blank" rel="noreferrer">
-              <MapPin size={13} />
-              지도
-            </a>
-          </div>
-        </div>
+      <Actions p={p} />
+    </div>
+  );
+}
+
+/** 장소 + 대안/여분 */
+function PlaceBlock({ k }: { k: string }) {
+  return (
+    <>
+      <PlaceRow k={k} />
+      {places[k].alt?.map((a) => (
+        <PlaceRow key={a} k={a} label={altLabel(a)} />
+      ))}
+    </>
+  );
+}
+
+function Seg<T extends string>({ value, set, items }: { value: T; set: (v: T) => void; items: [T, string][] }) {
+  return (
+    <div className="seg">
+      {items.map(([id, label]) => (
+        <button key={id} className={value === id ? "on" : ""} onClick={() => set(id)}>
+          {label}
+        </button>
       ))}
     </div>
   );
 }
 
-type Tab = "days" | "drive" | "food" | "shop" | "prep";
-const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "days", label: "일정", icon: <CalendarDays /> },
-  { id: "drive", label: "운전", icon: <Car /> },
-  { id: "food", label: "맛집", icon: <UtensilsCrossed /> },
-  { id: "shop", label: "쇼핑", icon: <ShoppingBag /> },
-  { id: "prep", label: "준비물", icon: <ClipboardCheck /> },
-];
+/* ---------------- 일정 ---------------- */
 
 function Days() {
-  const [day, setDay] = useState(() => store.get("day", 0));
+  const [day, setDay] = usePersist("day", 0);
   const [open, setOpen] = useState<number | null>(null);
-  useEffect(() => store.set("day", day), [day]);
   const d = days[day];
   return (
     <>
@@ -192,48 +202,34 @@ function Days() {
           >
             <span>DAY {i + 1}</span>
             <b>{x.date}</b>
-            <small>{x.title}</small>
           </button>
         ))}
       </div>
 
-      <section className="dayHero">
-        <div>
-          <h2>{d.title}</h2>
-          <p>{d.sub}</p>
-          <div className="chips">
-            <span className="chip">
-              <Sunset size={13} />
-              {d.weather}
-            </span>
-          </div>
-        </div>
-        <div className="goal">
-          <small>오늘의 목표</small>
-          <b>{d.goal}</b>
-        </div>
+      <section className="dayHead">
+        <h2>{d.title}</h2>
+        <span className="goal">{d.goal}</span>
       </section>
-
-      <div className="tip">
-        <Star size={16} />
-        <p>{d.tip}</p>
-      </div>
+      <p className="dayTip">
+        <Lightbulb size={14} />
+        {d.tip}
+      </p>
 
       <ol className="timeline">
         {d.items.map((x, i) => {
           const isOpen = open === i;
           return (
             <li key={x.time + x.title} className={"k-" + x.kind + (isOpen ? " open" : "")}>
-              <time>{x.time}</time>
               <div className="node">{kindIcon[x.kind]}</div>
               <div className="card">
                 <button className="cardMain" onClick={() => setOpen(isOpen ? null : i)}>
-                  <span>
+                  <time>{x.time}</time>
+                  <span className="cardText">
                     <b>
                       {x.title}
                       {x.pick && <em className="pick">맛집</em>}
                     </b>
-                    <small>{x.note}</small>
+                    {x.note && <small>{x.note}</small>}
                     {x.warn && (
                       <span className="warn">
                         <TriangleAlert size={12} />
@@ -243,8 +239,14 @@ function Days() {
                   </span>
                   <ChevronDown className="chev" />
                 </button>
-                {isOpen && <PlaceCard k={x.place} />}
-                {isOpen && x.extra?.map((k) => <PlaceCard key={k} k={k} />)}
+                {isOpen && (
+                  <div className="detail">
+                    <PlaceBlock k={x.place} />
+                    {x.extra?.map((k) => (
+                      <PlaceRow key={k} k={k} />
+                    ))}
+                  </div>
+                )}
               </div>
             </li>
           );
@@ -254,118 +256,105 @@ function Days() {
   );
 }
 
+/* ---------------- 운전 ---------------- */
+
 function Drive() {
   return (
     <section className="panel">
-      <div className="panelIntro">
-        <h2>운전 · 맵코드</h2>
-        <p>
-          렌터카 내비에서 <b>マップコード(맵코드)</b> 메뉴를 고르고 숫자를 입력하세요. 코드를 누르면 복사돼요.
-        </p>
-      </div>
+      <p className="lead">
+        내비에서 <b>マップコード</b>를 고르고 입력하세요. 코드를 누르면 복사돼요.
+      </p>
       {drive.map((g) => (
-        <div className="driveGroup" key={g.day}>
+        <div className="group" key={g.day}>
           <h3>{g.day}</h3>
           {g.keys.map((k, i) => (
-            <div className="driveRow" key={k}>
-              <span className={"step" + (places[k].name.startsWith("[여분]") ? " spare" : "")}>
-                {places[k].name.startsWith("[여분]") ? "P" : i + 1}
-              </span>
-              <PlaceCard k={k} compact />
+            <div className="driveRow" key={k + i}>
+              <span className="step">{i + 1}</span>
+              <div className="driveBody">
+                <PlaceBlock k={k} />
+              </div>
             </div>
           ))}
         </div>
       ))}
-      <div className="note">
-        <Snowflake size={16} />
-        <p>
-          12월 유후인은 아침에 길이 얼 수 있어요. 겨울 타이어를 확인하고, 다리 위와 그늘진 커브에서는 천천히 달리세요.
-          일본은 <b>좌측통행</b>, 우회전할 때 맞은편 차량을 조심하세요.
-        </p>
-      </div>
+      <p className="note">
+        <Snowflake size={14} />
+        좌측통행 · 아침 결빙 주의 · 반납 전 가득 주유
+      </p>
     </section>
   );
 }
+
+/* ---------------- 맛집 ---------------- */
 
 function Food() {
+  const groups = [...new Set(meals.map((m) => m.when))];
   return (
     <section className="panel">
-      <div className="panelIntro">
-        <h2>맛집</h2>
-        <p>일정에 넣은 식당과, 줄이 길거나 문을 닫았을 때 갈 대안이에요. 연말이라 출발 전에 영업 여부를 꼭 확인하세요.</p>
-      </div>
-      <div className="foodGrid">
-        {foods.map((f) => {
-          const p = places[f.key];
-          const isAlt = f.day.includes("대안");
-          return (
-            <article className={"food" + (isAlt ? " isAlt" : "")} key={f.key}>
-              <div className="foodTop">
-                <span className="foodDay">{f.day}</span>
-                <span className="foodTag">{f.tag}</span>
-              </div>
-              <h3>{p.name.replace(/^\[.*?\]\s*/, "")}</h3>
-              <p className="menu">{f.menu}</p>
-              <p className="why">{f.why}</p>
-              <small>{p.meta}</small>
-              <div className="placeActions">
-                {p.tel && (
-                  <a className="ghost" href={"tel:" + p.tel}>
-                    <Phone size={13} />
-                    전화
-                  </a>
-                )}
-                <a className="primary" href={mapUrl(p)} target="_blank" rel="noreferrer">
-                  <MapPin size={13} />
-                  지도
-                  <ExternalLink size={12} />
-                </a>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      <p className="lead">연말이라 출발 전에 영업 여부를 확인하세요.</p>
+      {groups.map((g) => (
+        <div className="group" key={g}>
+          <h3>{g}</h3>
+          {meals
+            .filter((m) => m.when === g)
+            .map((m) => {
+              const p = places[m.key];
+              return (
+                <div className="meal" key={m.key}>
+                  <div className="placeRow">
+                    <div className="placeText">
+                      <b>{p.name}</b>
+                      <span className="menu">{m.menu}</span>
+                      <small>{p.meta}</small>
+                    </div>
+                    <Actions p={p} />
+                  </div>
+                  {p.alt?.map((a) => (
+                    <PlaceRow key={a} k={a} label="대안" />
+                  ))}
+                </div>
+              );
+            })}
+        </div>
+      ))}
     </section>
   );
 }
 
-const cats = ["내 리스트", "후쿠오카 명물", "과자·간식", "드럭스토어", "규슈 여행지"] as const;
+/* ---------------- 쇼핑 ---------------- */
+
+const cats = ["내 리스트", "후쿠오카 명물", "과자·간식", "드럭스토어"] as const;
 
 function BuyList() {
-  const [got, setGot] = useState<string[]>(() => store.get("bought", [] as string[]));
-  useEffect(() => store.set("bought", got), [got]);
+  const [got, setGot] = usePersist<string[]>("bought", []);
   const toggle = (n: string) => setGot(got.includes(n) ? got.filter((x) => x !== n) : [...got, n]);
   return (
     <section className="panel">
-      <div className="panelIntro">
-        <h2>쇼핑 리스트</h2>
-        <p>산 물건은 체크하세요. 체크는 이 기기에 저장돼요. 매장에서는 일본어 이름을 보여주면 찾기 쉬워요.</p>
-      </div>
       {cats.map((c) => (
-        <div className="buyGroup" key={c}>
-          <h3>{c === "내 리스트" ? "★ " + c : c}</h3>
+        <div className="group" key={c}>
+          <h3>{c === "내 리스트" ? "★ 내 리스트" : c}</h3>
           {buys
             .filter((b) => b.cat === c)
             .map((b) => {
               const on = got.includes(b.name);
               const p = b.place ? places[b.place] : undefined;
               return (
-                <div className={"buyRow" + (on ? " checked" : "") + (b.mine ? " mine" : "")} key={b.name}>
+                <div className={"checkRow" + (on ? " checked" : "")} key={b.name}>
                   <button className="check" onClick={() => toggle(b.name)} aria-label="샀어요">
                     {on ? <CircleCheck /> : <span />}
                   </button>
-                  <div className="buyText">
-                    <b>{b.name}</b>
-                    <span className="jp">{b.jp}</span>
-                    <p className="where">
-                      <MapPin size={12} />
+                  <div className="checkText">
+                    <b>
+                      {b.name} <span className="jp">{b.jp}</span>
+                    </b>
+                    <small>
                       {b.where}
-                    </p>
-                    <p className="buyNote">{b.note}</p>
+                      {b.note && " · " + b.note}
+                    </small>
                   </div>
                   {p && (
-                    <a className="ghost" href={mapUrl(p)} target="_blank" rel="noreferrer">
-                      지도
+                    <a className="btn" href={mapUrl(p)} target="_blank" rel="noreferrer" aria-label="지도">
+                      <MapPin size={13} />
                     </a>
                   )}
                 </div>
@@ -377,56 +366,44 @@ function BuyList() {
   );
 }
 
-const fitLabel = { good: "여행 기간 OK", maybe: "조건 확인", check: "확인 필요" } as const;
-
-function DealCard({ d }: { d: Deal }) {
+function DealRow({ d }: { d: Deal }) {
   return (
-    <article className={"deal fit-" + d.fit}>
-      <div className="dealTop">
-        <b>{d.title}</b>
-        <span className="fit">{fitLabel[d.fit]}</span>
+    <div className={"deal" + (d.best ? " best" : "")}>
+      <div className="dealText">
+        <b>
+          {d.title}
+          {d.best && <em className="pick">추천</em>}
+        </b>
+        <p>{d.benefit}</p>
+        <small>
+          {d.when} · {d.how}
+        </small>
       </div>
-      <small>{d.who}</small>
-      <p className="benefit">{d.benefit}</p>
-      <p className="when">
-        <CalendarDays size={12} />
-        {d.when}
-      </p>
-      <p className="how">{d.how}</p>
       {d.url && (
-        <a className="ghost" href={d.url} target="_blank" rel="noreferrer">
-          자세히
-          <ExternalLink size={12} />
+        <a className="btn" href={d.url} target="_blank" rel="noreferrer" aria-label="자세히">
+          <ExternalLink size={13} />
         </a>
       )}
-    </article>
+    </div>
   );
 }
 
 function Deals() {
   return (
     <section className="panel">
-      <div className="panelIntro">
-        <h2>카드 · 쿠폰</h2>
-        <p>2026년 11월 20일에 찾은 정보예요. 이벤트는 자주 바뀌니 출발 전에 카드사 앱과 쿠폰 화면에서 다시 확인하세요.</p>
-      </div>
-      <div className="tip">
-        <Star size={16} />
-        <p>
-          <b>추천 조합:</b> JCB 카드를 하나 준비해서 돈키호테·하카타 한큐에 미리 응모 → 돈키호테에서는 면세 + 관광객 쿠폰 +
-          JCB 캐시백. 편의점·소액은 트래블카드로.
-        </p>
-      </div>
-      <h3 className="subhead first">카드 혜택</h3>
-      <div className="deals">
+      <p className="lead">
+        <b>추천:</b> JCB 카드로 돈키호테에서 면세 + 관광객 쿠폰 + 20% 캐시백. 출발 전 조건 재확인.
+      </p>
+      <div className="group">
+        <h3>카드</h3>
         {cards.map((d) => (
-          <DealCard d={d} key={d.title} />
+          <DealRow d={d} key={d.title} />
         ))}
       </div>
-      <h3 className="subhead">쿠폰 · 매장 이벤트</h3>
-      <div className="deals">
+      <div className="group">
+        <h3>쿠폰</h3>
         {coupons.map((d) => (
-          <DealCard d={d} key={d.title} />
+          <DealRow d={d} key={d.title} />
         ))}
       </div>
     </section>
@@ -434,33 +411,23 @@ function Deals() {
 }
 
 function Shop() {
-  const [view, setView] = useState<"list" | "deal">(() => store.get("shopView", "list" as "list" | "deal"));
-  useEffect(() => store.set("shopView", view), [view]);
+  const [view, setView] = usePersist<"list" | "deal">("shopView", "list");
   return (
     <>
-      <div className="seg">
-        <button className={view === "list" ? "on" : ""} onClick={() => setView("list")}>
-          쇼핑 리스트
-        </button>
-        <button className={view === "deal" ? "on" : ""} onClick={() => setView("deal")}>
-          카드·쿠폰
-        </button>
-      </div>
+      <Seg value={view} set={setView} items={[["list", "쇼핑 리스트"], ["deal", "카드·쿠폰"]]} />
       {view === "list" ? <BuyList /> : <Deals />}
     </>
   );
 }
 
+/* ---------------- 준비물 ---------------- */
+
 function TaxGuide() {
   return (
-    <section className="panel tax">
-      <div className="panelIntro">
-        <h2>면세 가이드</h2>
-        <p>
-          2026년 11월부터 일본 면세는 <b>세금 포함 결제 → 출국 때 세관 확인 → 환급</b> 방식이에요. 순서대로 따라 하세요.
-        </p>
-      </div>
-
+    <section className="panel">
+      <p className="lead">
+        세금 포함 결제 → 출국 때 세관 확인 → 환급
+      </p>
       <ol className="steps">
         {taxSteps.map((s, i) => (
           <li key={s.title}>
@@ -478,109 +445,64 @@ function TaxGuide() {
         ))}
       </ol>
 
-      <h3 className="subhead">DAY 3 동선 쇼핑 매장 · 환급 업체</h3>
-      <p className="subnote">
-        <b className="sure">확인</b>은 가게 공식 안내 기준, <b className="unsure">확인 필요</b>는 보도나 추정이라 계산할 때 영수증으로 꼭 확인하세요.
-      </p>
-      <div className="shopList">
-        {shops.map((s) => {
-          const p = places[s.key];
-          return (
-            <div className="shopRow" key={s.key}>
-              <div className="shopMain">
-                <small>{s.area}</small>
-                <b>{p.name}</b>
-                <span className={"refunder" + (s.sure ? " sure" : " unsure")}>
-                  {s.refunder}
-                  <em>{s.sure ? "확인" : "확인 필요"}</em>
-                </span>
-                <p>{s.tip}</p>
-              </div>
-              <a className="ghost" href={mapUrl(p)} target="_blank" rel="noreferrer">
-                <MapPin size={13} />
-                지도
-              </a>
-            </div>
-          );
-        })}
-      </div>
-
-      <h3 className="subhead">환급 업체</h3>
-      <div className="refunders">
-        {refunders.map((r) => (
-          <div className="refunderCard" key={r.name}>
-            <b>{r.name}</b>
-            <small>{r.stores}</small>
-            <p>{r.how}</p>
-            <a className="ghost" href={r.url} target="_blank" rel="noreferrer">
-              사이트
-              <ExternalLink size={12} />
-            </a>
+      <div className="group">
+        <h3>DAY 3 매장별 환급 업체</h3>
+        {shops.map((s) => (
+          <div className="shopRow" key={s.key}>
+            <b>{places[s.key].name}</b>
+            <span className={"refunder " + (s.sure ? "sure" : "unsure")}>{s.refunder}</span>
           </div>
         ))}
+        <p className="fine">초록색은 가게 공식 안내, 노란색은 계산할 때 영수증으로 확인하세요.</p>
       </div>
-      <div className="note">
-        <TriangleAlert size={16} />
-        <p>
-          환급 업체 사이트는 검색하지 말고 <b>영수증의 QR</b>로 들어가세요. 업체·수수료·입금 기간은 가게마다 달라요. J-TaxRefund는
-          공식 사이트 주소를 확인하지 못해서 돈키호테 면세 안내 페이지로 연결해 뒀어요.
-        </p>
+
+      <div className="group">
+        <h3>환급 업체 사이트</h3>
+        <div className="chipLinks">
+          {refunders.map((r) => (
+            <a key={r.name} className="btn" href={r.url} target="_blank" rel="noreferrer">
+              {r.name}
+              <ExternalLink size={12} />
+            </a>
+          ))}
+        </div>
+        <p className="fine">가입은 검색 말고 영수증 QR로 들어가세요.</p>
       </div>
     </section>
   );
 }
 
-function Prep() {
-  const [view, setView] = useState<"list" | "tax">(() => store.get("prepView", "list" as "list" | "tax"));
-  useEffect(() => store.set("prepView", view), [view]);
-  return (
-    <>
-      <div className="seg">
-        <button className={view === "list" ? "on" : ""} onClick={() => setView("list")}>
-          체크리스트
-        </button>
-        <button className={view === "tax" ? "on" : ""} onClick={() => setView("tax")}>
-          면세 가이드
-        </button>
-      </div>
-      {view === "list" ? <Checklist /> : <TaxGuide />}
-    </>
-  );
-}
-
 function Checklist() {
-  const [done, setDone] = useState<string[]>(() => store.get("prep", [] as string[]));
-  useEffect(() => store.set("prep", done), [done]);
+  const [done, setDone] = usePersist<string[]>("prep", []);
   const toggle = (t: string) => setDone(done.includes(t) ? done.filter((x) => x !== t) : [...done, t]);
-  const pct = Math.round((done.length / prep.length) * 100);
+  const n = prep.filter((p) => done.includes(p.title)).length;
   return (
     <section className="panel">
-      <div className="panelIntro">
-        <h2>출발 전 준비</h2>
-        <p>하나씩 끝내고 체크하세요. 체크한 항목은 이 기기에 저장돼요.</p>
+      <div className="progressWrap">
         <div className="progress">
-          <div style={{ width: pct + "%" }} />
+          <div style={{ width: (n / prep.length) * 100 + "%" }} />
         </div>
-        <small className="progressLabel">
-          {done.length} / {prep.length} 완료
+        <small>
+          {n} / {prep.length}
         </small>
       </div>
       {prep.map((x) => {
         const on = done.includes(x.title);
         return (
-          <div className={"prepRow" + (on ? " checked" : "")} key={x.title}>
+          <div className={"checkRow" + (on ? " checked" : "")} key={x.title}>
             <button className="check" onClick={() => toggle(x.title)} aria-label="완료 표시">
               {on ? <CircleCheck /> : <span />}
             </button>
-            <div className="prepIcon">{prepIcon[x.icon]}</div>
-            <div className="prepText">
+            <span className="prepIcon">{prepIcon[x.icon]}</span>
+            <div className="checkText">
               <b>{x.title}</b>
-              <p>{x.desc}</p>
+              <small>{x.desc}</small>
             </div>
-            <a className="ghost" href={x.url} target="_blank" rel="noreferrer">
-              {x.cta}
-              <ExternalLink size={12} />
-            </a>
+            {x.url && (
+              <a className="btn" href={x.url} target="_blank" rel="noreferrer" aria-label="열기">
+                <ExternalLink size={13} />
+              </a>
+            )}
           </div>
         );
       })}
@@ -588,31 +510,40 @@ function Checklist() {
   );
 }
 
+function Prep() {
+  const [view, setView] = usePersist<"list" | "tax">("prepView", "list");
+  return (
+    <>
+      <Seg value={view} set={setView} items={[["list", "체크리스트"], ["tax", "면세 가이드"]]} />
+      {view === "list" ? <Checklist /> : <TaxGuide />}
+    </>
+  );
+}
+
+/* ---------------- 앱 ---------------- */
+
+type Tab = "days" | "drive" | "food" | "shop" | "prep";
+const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "days", label: "일정", icon: <CalendarDays /> },
+  { id: "drive", label: "운전", icon: <Car /> },
+  { id: "food", label: "맛집", icon: <UtensilsCrossed /> },
+  { id: "shop", label: "쇼핑", icon: <ShoppingBag /> },
+  { id: "prep", label: "준비물", icon: <ClipboardCheck /> },
+];
+
 function App() {
-  const [tab, setTab] = useState<Tab>(() => store.get("tab", "days" as Tab));
+  const [tab, setTab] = usePersist<Tab>("tab", "days");
   useEffect(() => {
-    store.set("tab", tab);
     window.scrollTo({ top: 0 });
   }, [tab]);
   return (
     <div className="app">
       <header className="hero">
         <div className="heroInner">
-          <span className="kicker">FUKUOKA · YUFUIN · BEPPU</span>
-          <h1>
-            후쿠오카
-            <br />
-            가족여행
-          </h1>
-          <p>2026.12.27 – 12.29 · 3인</p>
-          <div className="flights">
-            <span>
-              <Plane size={14} /> 도착 12.27 09:30
-            </span>
-            <span>
-              <Plane size={14} className="flip" /> 출발 12.29 {FLIGHT_OUT}
-            </span>
-          </div>
+          <h1>후쿠오카 가족여행</h1>
+          <p>
+            12.27 09:30 도착 · 12.29 {FLIGHT_OUT} 출발
+          </p>
         </div>
         <div className="sun" aria-hidden />
       </header>
