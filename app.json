@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "후쿠오카 가족여행",
+    "slug": "japan-tour-fukuoka",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light"
+  }
+}
