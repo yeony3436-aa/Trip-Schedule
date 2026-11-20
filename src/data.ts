@@ -26,7 +26,7 @@ export type Item = {
   warn?: string;
 };
 
-export type Day = { date: string; title: string; goal: string; tip: string; items: Item[] };
+export type Day = { date: string; iso: string; title: string; goal: string; notes?: string[]; items: Item[] };
 
 export const FLIGHT_OUT = "17:05";
 
@@ -139,10 +139,15 @@ export const places: Record<string, Place> = {
     q: "一蘭 本社総本店",
     meta: "24시간 · 나카스",
     tel: "050-3733-2600",
-    alt: ["mentaiju", "taira"],
+    alt: ["mentaiju", "hyotanSushi"],
   },
   mentaiju: { name: "원조 하카타 멘타이쥬", q: "元祖博多めんたい重", meta: "07:00–22:30 · 명란덮밥 · 대기 김", tel: "092-725-7220" },
-  taira: { name: "우동 다이라", q: "うどん平 住吉", meta: "11:00–15:00 · 우엉튀김 우동 · 연말 휴무 확인" },
+  hyotanSushi: {
+    name: "효탄스시 (텐진)",
+    q: "ひょうたん寿司 天神2-10-20",
+    meta: "점심 11:30–15:00 · 린트 근처 · 갈 거면 돈키호테 다음 텐진에서 점심",
+    tel: "092-711-1951",
+  },
   hankyu: { name: "하카타 한큐 백화점", q: "博多阪急", meta: "하카타역 직결 · 10시 개점" },
   yodobashi: { name: "요도바시카메라 하카타", q: "ヨドバシカメラ マルチメディア博多", meta: "전자·장난감·화장품 · 안에 GU" },
   gu: { name: "GU 요도바시점", q: "ジーユー ヨドバシ博多店", meta: "요도바시 건물 안" },
@@ -159,9 +164,10 @@ export const places: Record<string, Place> = {
 export const days: Day[] = [
   {
     date: "12.27 일",
+    iso: "2026-12-27",
     title: "다자이후 · 유후인",
     goal: "17:35 료칸 도착",
-    tip: "유후인 가게는 17시 전후로 닫아요. 디저트부터 사세요.",
+    notes: ["연말이라 입국심사가 오래 걸릴 수 있어요.", "유후인 가게는 17시 전후로 닫아요. 디저트부터 사세요."],
     items: [
       { time: "09:30", title: "후쿠오카공항 도착", note: "입국심사 40~60분", kind: "plane", place: "airport" },
       {
@@ -195,9 +201,10 @@ export const days: Day[] = [
   },
   {
     date: "12.28 월",
+    iso: "2026-12-28",
     title: "긴린코 · 벳푸 · 하카타",
     goal: "15:40 렌터카 반납",
-    tip: "아침 길이 얼 수 있어요. 지옥찜은 12시 전에 들어가세요.",
+    notes: ["아침에 길이 얼 수 있으니 천천히 출발하세요.", "지옥찜공방은 12시 전에 들어가야 덜 기다려요."],
     items: [
       { time: "07:00", title: "긴린코 물안개 산책", note: "차로 5분 · 방한 필수", kind: "spot", place: "kinrin" },
       { time: "07:45", title: "조식 · 체크아웃", kind: "hotel", place: "ryokan" },
@@ -224,9 +231,10 @@ export const days: Day[] = [
   },
   {
     date: "12.29 화",
+    iso: "2026-12-29",
     title: "하카타 쇼핑 · 귀국",
     goal: "14:40 공항 도착",
-    tip: "면세품은 기내 가방에. 공항에선 짐 부치기 전에 세관 확인부터.",
+    notes: ["면세품은 영수증별로 모아 기내 가방에 넣으세요.", "공항에선 짐을 부치기 전에 세관 확인부터 하세요."],
     items: [
       { time: "08:00", title: "체크아웃 · 짐 맡기기", note: "편의점 명란 오니기리", kind: "hotel", place: "stay" },
       { time: "08:40", title: "하카타역으로 이동", note: "지하철 5분", kind: "drive", place: "hakata" },
@@ -330,15 +338,32 @@ export const refunders: Refunder[] = [
 
 /* ---------------- 준비물 ---------------- */
 
-export type Prep = { title: string; desc: string; url?: string; icon: string };
+export type Prep = { title: string; desc: string; url?: string; icon: string; guide?: string[] };
 
 export const prep: Prep[] = [
   { title: "Visit Japan Web", desc: "3인 모두 · 입국 QR + 면세 QR", url: "https://www.vjw.digital.go.jp/", icon: "clipboard" },
   { title: "국제운전면허증", desc: "한국 면허증·여권 원본도 함께", url: "https://www.safedriving.or.kr/", icon: "file" },
   { title: "렌터카 옵션", desc: "겨울 타이어 · ETC 카드 · 면책(CDW+NOC)", url: "https://rent.toyota.co.jp/eng/", icon: "snow" },
-  { title: "eSIM", desc: "일본 데이터", url: "https://www.airalo.com/ja/japan-esim", icon: "wifi" },
+  {
+    title: "eSIM (데이터)",
+    desc: "통신사 로밍보다 훨씬 저렴 · 1인 1개",
+    icon: "wifi",
+    guide: [
+      "내 폰이 eSIM 되는지 확인: 아이폰은 설정 → 일반 → 정보에 'EID'가 있으면 OK (XS 이후). 갤럭시는 설정 → 연결 → SIM 관리자에 'eSIM 추가'가 있으면 OK.",
+      "가격 비교: 통신사 로밍은 3일 약 6~7만 원(1인), eSIM은 3일 무제한 약 1~2만 원.",
+      "구매: 유심사·말톡·도시락eSIM·Holafly·Airalo 중 하나에서 '일본 3일(또는 4일) 무제한' 구매 → 이메일로 QR 코드 도착.",
+      "설치는 한국에서 출발 전에 (와이파이 필요): QR 스캔 → 회선 이름을 '일본'으로.",
+      "일본 도착 후: 모바일 데이터를 '일본' 회선으로 바꾸고, 그 회선의 데이터 로밍을 켜기. 한국 회선의 데이터 로밍은 끄기.",
+      "한국 번호 문자는 계속 받을 수 있어요 (인증 문자용). 전화가 꼭 필요하면 통신사 로밍을 따로 생각하세요.",
+    ],
+  },
   { title: "여행자보험", desc: "의료비 · 항공 지연 · 휴대품", icon: "shield" },
-  { title: "모츠나베 예약", desc: "12/28 17:30 · 3인", url: "https://motu-ooyama.com/", icon: "food" },
+  {
+    title: "모츠나베 예약",
+    desc: "12/28 17:30 · 3인 · 그루나비 무료 온라인 예약",
+    url: "https://gurunavi.com/en/f158507/rst",
+    icon: "food",
+  },
   { title: "JCB 캐시백 응모", desc: "돈키호테 · 한큐한신백화점", url: "https://www.specialoffers.jcb/kr/campaign/detail/2026JCBig/92971/", icon: "card" },
   { title: "결제 준비", desc: "해외결제 카드 2장 · 엔화 현금 · 동전지갑", icon: "card" },
 ];
@@ -438,13 +463,13 @@ export const coupons: Deal[] = [
 
 /* ---------------- 날씨 (Open-Meteo) ---------------- */
 
-export type WeatherSpot = { date: string; place: string; lat: number; lon: number };
+export type WeatherSpot = { place: string; lat: number; lon: number };
 
-/** 날짜별로 그날 주로 머무는 곳 */
+/** 여행지 실시간 날씨 (Open-Meteo) */
 export const weatherSpots: WeatherSpot[] = [
-  { date: "2026-12-27", place: "유후인", lat: 33.263, lon: 131.356 },
-  { date: "2026-12-28", place: "벳푸", lat: 33.317, lon: 131.477 },
-  { date: "2026-12-29", place: "후쿠오카", lat: 33.59, lon: 130.401 },
+  { place: "후쿠오카", lat: 33.59, lon: 130.401 },
+  { place: "유후인", lat: 33.263, lon: 131.356 },
+  { place: "벳푸", lat: 33.317, lon: 131.477 },
 ];
 
 /* ---------------- 대중교통 ---------------- */
