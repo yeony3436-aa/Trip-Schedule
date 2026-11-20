@@ -46,9 +46,33 @@ a {
   color: inherit;
 }
 
+/* 화면 높이에 맞춘 틀: 페이지 전체가 아니라 안쪽만 스크롤
+   (카카오톡 등 인앱 브라우저에서 하단 탭이 흔들리지 않게) */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
 .app {
-  min-height: 100vh;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
 }
 
 /* ---------- Hero ---------- */
@@ -323,31 +347,56 @@ a {
   color: var(--ink-3);
 }
 
-/* ---------- Tabs (하단 고정) ---------- */
+/* ---------- Tabs (화면 맨 아래 일반 블록) ---------- */
 .tabs {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 20;
+  flex-shrink: 0;
   display: flex;
   gap: 2px;
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  background: rgba(255, 253, 249, 0.96);
-  backdrop-filter: blur(12px);
+  background: var(--paper);
   border-top: 1px solid var(--line);
   box-shadow: 0 -6px 20px -14px rgba(35, 32, 29, 0.35);
 }
 
 @media (min-width: 720px) {
   .tabs {
-    bottom: 12px;
+    margin-bottom: 12px;
     border: 1px solid var(--line);
     border-radius: 16px;
     padding-bottom: 6px;
   }
+}
+
+/* ---------- 카카오톡 안내 배너 ---------- */
+.kakaoBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fee500;
+  color: #3c1e1e;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.kakaoBanner span {
+  flex: 1;
+  min-width: 0;
+}
+
+.kakaoBanner .btn.primary {
+  background: #3c1e1e;
+  border-color: #3c1e1e;
+}
+
+.kakaoBanner .btn.iconOnly {
+  background: transparent;
+  border-color: rgba(60, 30, 30, 0.25);
+  font-size: 16px;
 }
 
 .tabs button {
@@ -1588,6 +1637,33 @@ main {
 .fcIcon svg {
   width: 15px;
   height: 15px;
+}
+
+/* 대안 식당 동선 메모 */
+.fitNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #fff3d6;
+  color: #8a5a00;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.fitNote.ok {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.fitNote svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 /* 아이콘만 있는 버튼 */

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Plane,
@@ -177,6 +177,12 @@ function PlaceRow({ k, label }: { k: string; label?: string }) {
         {label && <span className="tag">{label}</span>}
         <b>{p.name}</b>
         <small>{p.meta}</small>
+        {label && p.fit && (
+          <span className={"fitNote" + (p.fit.startsWith("동선 OK") ? " ok" : "")}>
+            <Route size={12} />
+            {p.fit}
+          </span>
+        )}
       </div>
       <Actions p={p} />
     </div>
@@ -956,11 +962,14 @@ function App() {
     if (todayIdx >= 0) setDay(todayIdx);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todayIdx]);
+  const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    window.scrollTo({ top: 0 });
+    scroller.current?.scrollTo({ top: 0 });
   }, [tab, day]);
   return (
     <div className="app">
+      <div className="scroll" ref={scroller}>
+      {isKakao && <KakaoBanner />}
       <header className="hero">
         <div className="heroInner">
           <div className="heroTop">
@@ -987,6 +996,16 @@ function App() {
         <div className="sun" aria-hidden />
       </header>
 
+      <main>
+        {tab === "days" && <Days day={day} todayIdx={todayIdx} nowHm={now.hm} fc={forecast[day]} />}
+        {tab === "drive" && <Move />}
+        {tab === "food" && <Food />}
+        {tab === "shop" && <Shop />}
+        {tab === "prep" && <Prep />}
+      </main>
+      </div>
+
+      {/* 고정(fixed) 대신 화면 맨 아래 일반 블록: 카카오톡 인앱 브라우저에서도 안 흔들림 */}
       <nav className="tabs">
         {tabs.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => setTab(t.id)}>
@@ -995,14 +1014,28 @@ function App() {
           </button>
         ))}
       </nav>
+    </div>
+  );
+}
 
-      <main>
-        {tab === "days" && <Days day={day} todayIdx={todayIdx} nowHm={now.hm} fc={forecast[day]} />}
-        {tab === "drive" && <Move />}
-        {tab === "food" && <Food />}
-        {tab === "shop" && <Shop />}
-        {tab === "prep" && <Prep />}
-      </main>
+/* ---------------- 카카오톡 인앱 브라우저 안내 ---------------- */
+
+const isKakao = typeof navigator !== "undefined" && /KAKAOTALK/i.test(navigator.userAgent);
+
+function KakaoBanner() {
+  const [hide, setHide] = usePersist("kakaoBannerHidden", false);
+  if (hide) return null;
+  // 카카오톡이 지원하는 '외부 브라우저로 열기' 주소
+  const external = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+  return (
+    <div className="kakaoBanner">
+      <span>사파리·크롬에서 열면 더 부드럽고, 홈 화면에 추가할 수 있어요.</span>
+      <a className="btn primary" href={external}>
+        브라우저로 열기
+      </a>
+      <button className="btn iconOnly" onClick={() => setHide(true)} aria-label="닫기">
+        ×
+      </button>
     </div>
   );
 }
