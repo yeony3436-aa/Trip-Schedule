@@ -59,7 +59,7 @@ a {
   background:
     radial-gradient(120% 90% at 90% 0%, rgba(210, 85, 63, 0.55), transparent 55%),
     linear-gradient(160deg, #14263f 0%, var(--indigo) 50%, #3b5f8a 100%);
-  padding: 30px 20px 52px;
+  padding: calc(22px + env(safe-area-inset-top)) 16px 16px;
 }
 
 .heroInner {
@@ -72,9 +72,9 @@ a {
 .hero h1 {
   font-family: "Noto Serif KR", serif;
   font-weight: 900;
-  font-size: clamp(30px, 7vw, 44px);
-  letter-spacing: -1px;
-  margin: 0 0 8px;
+  font-size: clamp(24px, 6vw, 34px);
+  letter-spacing: -0.8px;
+  margin: 0;
 }
 
 .hero p {
@@ -86,25 +86,166 @@ a {
 
 .sun {
   position: absolute;
-  right: -36px;
-  top: 14px;
-  width: 140px;
-  height: 140px;
+  right: -50px;
+  top: -40px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, #ff9a7a, var(--vermilion) 60%, #a83a28);
   box-shadow: 0 0 70px rgba(210, 85, 63, 0.5);
+  opacity: 0.6;
 }
 
-.sun::after {
-  content: "";
-  position: absolute;
-  left: -240px;
-  right: -60px;
-  bottom: -90px;
-  height: 120px;
-  background: #14263f;
-  clip-path: polygon(0 100%, 18% 45%, 30% 70%, 48% 20%, 62% 60%, 76% 35%, 100% 80%, 100% 100%);
-  opacity: 0.85;
+
+/* ---------- Hero 안: 날씨 + 날짜 탭 ---------- */
+.heroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.heroWeather {
+  display: flex;
+  gap: 6px;
+}
+
+.hw {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+}
+
+.hwIcon {
+  display: grid;
+  color: #ffd8cc;
+}
+
+.hwIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hwText small {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #c9d5e6;
+  line-height: 1.1;
+}
+
+.hwText b {
+  display: block;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.dayTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 18px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dayTabs button {
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: #dbe4ef;
+  cursor: pointer;
+}
+
+.dayTabs small {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #f6b3a3;
+}
+
+.dayTabs b {
+  display: block;
+  margin-top: 1px;
+  font-size: 14px;
+}
+
+.dayTabs button.on {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.dayTabs button.on small {
+  color: var(--vermilion);
+}
+
+/* 목표 한 줄 */
+.goalLine {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--vermilion);
+}
+
+/* ---------- 그날 동선 지도 ---------- */
+.dayMap {
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.dayMapHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border: 0;
+  background: none;
+  color: var(--indigo);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dayMapHead .route {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.dayMapHead .route svg {
+  color: var(--ink-3);
+}
+
+.dayMap iframe {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border: 0;
+}
+
+.mapOpen {
+  margin: 10px 14px 12px;
 }
 
 /* ---------- Live weather (헤더 아래 겹침) ---------- */
@@ -462,11 +603,7 @@ main {
 }
 
 .dayHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 22px 2px 6px;
+  margin: 4px 2px 12px;
 }
 
 .dayHead h2 {

@@ -41,6 +41,9 @@ import {
   ArrowRight,
   Plus,
   Trash2,
+  Navigation2,
+  Map as MapIcon,
+  Flag,
 } from "lucide-react";
 import {
   days,
@@ -87,6 +90,10 @@ const prepIcon: Record<string, React.ReactNode> = {
 
 const mapUrl = (p: Place) =>
   p.url ?? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(p.q);
+
+/** 지금 위치에서 그곳까지 길찾기 (구글맵이 이동 수단을 고르게 둠) */
+const dirUrl = (p: Place) =>
+  "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(p.q);
 
 const altLabel = (key: string) => (key.includes("Park") ? "여분" : "대안");
 
@@ -150,9 +157,13 @@ function Actions({ p }: { p: Place }) {
           <Phone size={13} />
         </a>
       )}
-      <a className="btn primary" href={mapUrl(p)} target="_blank" rel="noreferrer">
+      <a className="btn" href={mapUrl(p)} target="_blank" rel="noreferrer">
         <MapPin size={13} />
         지도
+      </a>
+      <a className="btn primary" href={dirUrl(p)} target="_blank" rel="noreferrer">
+        <Navigation2 size={13} />
+        길찾기
       </a>
     </div>
   );
@@ -244,25 +255,21 @@ function LiveWeather() {
   const data = useCachedFetch<Live[] | Live>(url, 10 * 60e3);
   const list = Array.isArray(data) ? data : data ? [data] : [];
   return (
-    <section className="liveWeather">
+    <div className="heroWeather">
       {weatherSpots.map((s, i) => {
         const w = list[i];
-        const [icon, label] = w?.current ? wmo(w.current.weather_code) : [<Cloud />, "…"];
+        const [icon, label] = w?.current ? wmo(w.current.weather_code) : [<Cloud />, ""];
         return (
-          <div className="wCity" key={s.place}>
-            <small>{s.place}</small>
-            <div className="wNow">
-              <span className="wIcon">{icon}</span>
+          <div className="hw" key={s.place} title={label}>
+            <span className="hwIcon">{icon}</span>
+            <span className="hwText">
+              <small>{s.place}</small>
               <b>{w?.current ? Math.round(w.current.temperature_2m) + "°" : "–"}</b>
-            </div>
-            <span className="wSub">
-              {label}
-              {w?.daily && ` · ${Math.round(w.daily.temperature_2m_max[0])}°/${Math.round(w.daily.temperature_2m_min[0])}°`}
             </span>
           </div>
         );
       })}
-    </section>
+    </div>
   );
 }
 
@@ -328,41 +335,66 @@ function useJstNow() {
   return now;
 }
 
-function Days() {
-  const now = useJstNow();
-  const todayIdx = days.findIndex((x) => x.iso === now.iso);
-  const [day, setDay] = usePersist("day", 0);
+/** 그날 동선 전체를 지도 한 장으로 (키 없는 구글맵 임베드) */
+function DayMap({ route }: { route: string[] }) {
+  const [show, setShow] = usePersist("mapOpen", true);
+  const qs = route.map((k) => places[k].q);
+  const embed =
+    "https://maps.google.com/maps?saddr=" +
+    encodeURIComponent(qs[0]) +
+    "&daddr=" +
+    qs.slice(1).map(encodeURIComponent).join("+to:") +
+    "&output=embed";
+  const open =
+    "https://www.google.com/maps/dir/?api=1&origin=" +
+    encodeURIComponent(qs[0]) +
+    "&destination=" +
+    encodeURIComponent(qs[qs.length - 1]) +
+    (qs.length > 2 ? "&waypoints=" + qs.slice(1, -1).map(encodeURIComponent).join("%7C") : "");
+  return (
+    <section className="dayMap">
+      <button className="dayMapHead" onClick={() => setShow(!show)}>
+        <MapIcon size={15} />
+        <span className="route">
+          {route.map((k, i) => (
+            <React.Fragment key={k + i}>
+              {i > 0 && <ArrowRight size={11} />}
+              {places[k].short ?? places[k].name}
+            </React.Fragment>
+          ))}
+        </span>
+        <ChevronDown size={16} className={"chev" + (show ? " flip" : "")} />
+      </button>
+      {show && (
+        <>
+          <iframe title="그날 동선 지도" src={embed} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+          <a className="btn primary mapOpen" href={open} target="_blank" rel="noreferrer">
+            <Navigation2 size={13} />
+            구글맵에서 전체 경로 열기
+          </a>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Days({ day, todayIdx, nowHm }: { day: number; todayIdx: number; nowHm: string }) {
   const [open, setOpen] = useState<number | null>(null);
-  // 여행 기간에는 열 때마다 오늘 날짜로
-  useEffect(() => {
-    if (todayIdx >= 0) setDay(todayIdx);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todayIdx]);
+  useEffect(() => setOpen(null), [day]);
   const d = days[day];
   // 오늘이면 지금 시간에 해당하는 일정 (시작 시간이 지난 마지막 항목)
-  const nowIdx = day === todayIdx ? d.items.reduce((acc, x, i) => (x.time <= now.hm ? i : acc), -1) : -1;
+  const nowIdx = day === todayIdx ? d.items.reduce((acc, x, i) => (x.time <= nowHm ? i : acc), -1) : -1;
   return (
     <>
-      <div className="dayPicker">
-        {days.map((x, i) => (
-          <button
-            key={x.date}
-            className={day === i ? "on" : ""}
-            onClick={() => {
-              setDay(i);
-              setOpen(null);
-            }}
-          >
-            <span>{i === todayIdx ? "TODAY" : `DAY ${i + 1}`}</span>
-            <b>{x.date}</b>
-          </button>
-        ))}
-      </div>
-
       <section className="dayHead">
         <h2>{d.title}</h2>
-        <span className="goal">{d.goal}</span>
+        <p className="goalLine">
+          <Flag size={13} />
+          {d.goal}
+        </p>
       </section>
+
+      <DayMap route={d.route} />
 
       <ol className="timeline">
         {d.items.map((x, i) => {
@@ -872,19 +904,38 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
 
 function App() {
   const [tab, setTab] = usePersist<Tab>("tab", "days");
+  const now = useJstNow();
+  const todayIdx = days.findIndex((x) => x.iso === now.iso);
+  const [day, setDay] = usePersist("day", 0);
+  // 여행 기간에는 열 때마다 오늘 날짜로
+  useEffect(() => {
+    if (todayIdx >= 0) setDay(todayIdx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayIdx]);
   useEffect(() => {
     window.scrollTo({ top: 0 });
-  }, [tab]);
+  }, [tab, day]);
   return (
     <div className="app">
       <header className="hero">
         <div className="heroInner">
-          <h1>후쿠오카 가족여행</h1>
+          <div className="heroTop">
+            <h1>후쿠오카 가족여행</h1>
+            <LiveWeather />
+          </div>
+          {tab === "days" && (
+            <div className="dayTabs">
+              {days.map((x, i) => (
+                <button key={x.date} className={day === i ? "on" : ""} onClick={() => setDay(i)}>
+                  <small>{i === todayIdx ? "TODAY" : `DAY ${i + 1}`}</small>
+                  <b>{x.date}</b>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="sun" aria-hidden />
       </header>
-
-      <LiveWeather />
 
       <nav className="tabs">
         {tabs.map((t) => (
@@ -896,7 +947,7 @@ function App() {
       </nav>
 
       <main>
-        {tab === "days" && <Days />}
+        {tab === "days" && <Days day={day} todayIdx={todayIdx} nowHm={now.hm} />}
         {tab === "drive" && <Move />}
         {tab === "food" && <Food />}
         {tab === "shop" && <Shop />}
