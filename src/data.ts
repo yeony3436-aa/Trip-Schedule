@@ -7,6 +7,8 @@ export type Place = {
   /** 구글맵 링크를 직접 지정할 때 */
   url?: string;
   meta: string;
+  /** 동선 지도에 쓰는 짧은 이름 */
+  short?: string;
   /** 렌터카 내비용 맵코드 */
   mapcode?: string;
   tel?: string;
@@ -26,13 +28,13 @@ export type Item = {
   warn?: string;
 };
 
-export type Day = { date: string; iso: string; title: string; goal: string; notes?: string[]; items: Item[] };
+export type Day = { date: string; iso: string; title: string; goal: string; notes?: string[]; route: string[]; items: Item[] };
 
 export const FLIGHT_OUT = "17:05";
 
 export const places: Record<string, Place> = {
-  airport: { name: "후쿠오카공항 국제선", q: "福岡空港 国際線旅客ターミナル", meta: "입국 · 출국" },
-  rentPick: {
+  airport: { short: "공항", name: "후쿠오카공항 국제선", q: "福岡空港 国際線旅客ターミナル", meta: "입국 · 출국" },
+  rentPick: { short: "렌터카",
     name: "토요타 렌터카 공항 국제선점",
     q: "トヨタレンタカー 福岡空港国際線店",
     meta: "08:00–20:00 · 예약 영업소가 다르면 수정",
@@ -47,7 +49,7 @@ export const places: Record<string, Place> = {
     alt: ["dzPark2"],
   },
   dzPark2: { name: "다자이후 주차장 (사이후 2초메)", q: "太宰府駐車場 宰府2丁目", meta: "참배길 입구 쪽", mapcode: "55 334 723*68" },
-  dazaifu: { name: "다자이후 텐만구", q: "太宰府天満宮", meta: "학문의 신 · 참배길 기념품 거리" },
+  dazaifu: { short: "다자이후", name: "다자이후 텐만구", q: "太宰府天満宮", meta: "학문의 신 · 참배길 기념품 거리" },
   kasanoya: { name: "가사노야", q: "かさの家 太宰府", meta: "갓 구운 우메가에모치" },
   oishi: {
     name: "오이시차야",
@@ -56,7 +58,7 @@ export const places: Record<string, Place> = {
     mapcode: "55 364 318*28",
     tel: "092-922-4045",
   },
-  yfPark: {
+  yfPark: { short: "유후인",
     name: "NPC24H 유노츠보가도 주차장",
     q: "NPC24H湯布院湯の坪街道パーキング",
     meta: "24시간 · 유노츠보 거리 중간",
@@ -87,16 +89,16 @@ export const places: Record<string, Place> = {
     mapcode: "269 359 635*54",
     tel: "0977-85-3053",
   },
-  kinrin: { name: "긴린코 호수", q: "金鱗湖", meta: "겨울 아침 물안개", mapcode: "269 359 552*47" },
-  ryokan: {
+  kinrin: { short: "긴린코", name: "긴린코 호수", q: "金鱗湖", meta: "겨울 아침 물안개", mapcode: "269 359 552*47" },
+  ryokan: { short: "료칸",
     name: "료칸 여명 (ひすいの里 黎明)",
     q: "ひすいの里 黎明 湯布院",
     url: "https://www.google.com/maps/place/%EB%A3%8C%EC%B9%B8+%EC%97%AC%EB%AA%85/@33.256967,131.3664221,17z/data=!4m9!3m8!1s0x3546ae71048ede0b:0xd47721dd5d4dc1ca!5m2!4m1!1i2!8m2!3d33.2559297!4d131.3679645!16s%2Fg%2F1vxvfnvz",
     meta: "유후인초 가와카미 2212-35",
     mapcode: "269 329 283*05",
   },
-  umi: { name: "우미지고쿠", q: "海地獄 別府", meta: "08:00–17:00 · 무료 주차", mapcode: "46 521 556*83" },
-  mushi: {
+  umi: { short: "지옥순례", name: "우미지고쿠", q: "海地獄 別府", meta: "08:00–17:00 · 무료 주차", mapcode: "46 521 556*83" },
+  mushi: { short: "지옥찜",
     name: "지옥찜공방 간나와",
     q: "地獄蒸し工房 鉄輪",
     meta: "10:00–18:00 · 번호표 대기",
@@ -120,8 +122,8 @@ export const places: Record<string, Place> = {
     tel: "0977-22-3274",
   },
   chinoike: { name: "치노이케 지옥", q: "血の池地獄 別府", meta: "붉은 온천 · 차로 10분", mapcode: "46 552 770*20" },
-  stay: { name: "스테이 에어포트", q: "Stay Airport 福岡 空港前2-11-15", meta: "구코마에 2-11-15 · 국내선 근처" },
-  hakata: { name: "하카타역 (JR 하카타시티)", q: "JR博多シティ", meta: "아뮤플라자 · 한큐 · 데이토스" },
+  stay: { short: "숙소", name: "스테이 에어포트", q: "Stay Airport 福岡 空港前2-11-15", meta: "구코마에 2-11-15 · 국내선 근처" },
+  hakata: { short: "하카타역", name: "하카타역 (JR 하카타시티)", q: "JR博多シティ", meta: "아뮤플라자 · 한큐 · 데이토스" },
   ooyama: {
     name: "모츠나베 오오야마 KITTE점",
     q: "もつ鍋おおやま KITTE博多店",
@@ -132,9 +134,9 @@ export const places: Record<string, Place> = {
   hanamidori: { name: "하나미도리 (미즈타키)", q: "博多華味鳥 博多駅前店", meta: "17:00–23:00 · 맑은 닭백숙 전골", tel: "092-432-1801" },
   uogashi: { name: "스시 우오가시 1번가점", q: "寿司 博多魚がし 博多1番街店", meta: "하카타역 지하 · 시장 직영 초밥" },
   wgc: { name: "화이트글래스커피", q: "WHITE GLASS COFFEE 福岡", meta: "08:00–20:00 · 하카타역 앞", tel: "092-483-1559" },
-  canal: { name: "캐널시티 하카타", q: "キャナルシティ博多", meta: "캐릭터숍 · 분수쇼" },
+  canal: { short: "캐널시티", name: "캐널시티 하카타", q: "キャナルシティ博多", meta: "캐릭터숍 · 분수쇼" },
   muji: { name: "무인양품 캐널시티점", q: "無印良品 キャナルシティ博多", meta: "생활잡화·과자" },
-  ichiran: {
+  ichiran: { short: "이치란",
     name: "이치란 본사총본점",
     q: "一蘭 本社総本店",
     meta: "24시간 · 나카스",
@@ -152,8 +154,8 @@ export const places: Record<string, Place> = {
   yodobashi: { name: "요도바시카메라 하카타", q: "ヨドバシカメラ マルチメディア博多", meta: "전자·장난감·화장품 · 안에 GU" },
   gu: { name: "GU 요도바시점", q: "ジーユー ヨドバシ博多店", meta: "요도바시 건물 안" },
   fernanda: { name: "페르난다 아뮤에스트점", q: "フェルナンダ アミュエスト博多店", meta: "하카타역 지하 · 향수·바디미스트" },
-  donki: { name: "돈키호테 나카스점", q: "ドン・キホーテ 中洲店", meta: "24시간 · 면세" },
-  lindt: {
+  donki: { short: "돈키호테", name: "돈키호테 나카스점", q: "ドン・キホーテ 中洲店", meta: "24시간 · 면세" },
+  lindt: { short: "텐진",
     name: "린트 텐진지하상가점",
     q: "リンツ ショコラ ブティック 天神地下街店",
     meta: "10:00–20:00 · 돈키호테에서 도보 12분",
@@ -165,6 +167,7 @@ export const days: Day[] = [
   {
     date: "12.27 일",
     iso: "2026-12-27",
+    route: ["rentPick", "dazaifu", "yfPark", "ryokan"],
     title: "다자이후 · 유후인",
     goal: "17:35 료칸 도착",
     notes: ["연말이라 입국심사가 오래 걸릴 수 있어요.", "유후인 가게는 17시 전후로 닫아요. 디저트부터 사세요."],
@@ -202,6 +205,7 @@ export const days: Day[] = [
   {
     date: "12.28 월",
     iso: "2026-12-28",
+    route: ["kinrin", "umi", "mushi", "rentPick", "stay", "hakata"],
     title: "긴린코 · 벳푸 · 하카타",
     goal: "15:40 렌터카 반납",
     notes: ["아침에 길이 얼 수 있으니 천천히 출발하세요.", "지옥찜공방은 12시 전에 들어가야 덜 기다려요."],
@@ -232,6 +236,7 @@ export const days: Day[] = [
   {
     date: "12.29 화",
     iso: "2026-12-29",
+    route: ["stay", "hakata", "canal", "ichiran", "donki", "lindt", "airport"],
     title: "하카타 쇼핑 · 귀국",
     goal: "14:40 공항 도착",
     notes: ["면세품은 영수증별로 모아 기내 가방에 넣으세요.", "공항에선 짐을 부치기 전에 세관 확인부터 하세요."],
