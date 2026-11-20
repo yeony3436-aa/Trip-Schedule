@@ -134,7 +134,7 @@ a {
 
 .hwText small {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #c9d5e6;
   line-height: 1.1;
@@ -142,7 +142,7 @@ a {
 
 .hwText b {
   display: block;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.2;
 }
 
@@ -240,7 +240,7 @@ a {
 .dayMap iframe {
   display: block;
   width: 100%;
-  height: 260px;
+  height: 210px;
   border: 0;
 }
 
@@ -460,6 +460,8 @@ main {
 }
 
 .pick {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-style: normal;
   font-size: 10px;
   font-weight: 800;
@@ -772,16 +774,24 @@ main {
 }
 
 .warn {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 4px;
+  width: fit-content;
+  max-width: 100%;
   margin-top: 5px;
-  padding: 2px 7px;
+  padding: 3px 7px;
   border-radius: 6px;
   background: #fff3d6;
   color: #8a5a00;
   font-size: 11.5px;
   font-weight: 700;
+  line-height: 1.4;
+}
+
+.warn svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .chev {
@@ -899,7 +909,8 @@ main {
 }
 
 .checkText .jp {
-  margin-left: 2px;
+  display: block;
+  margin-top: 1px;
   font-size: 11.5px;
   font-weight: 500;
   color: var(--ink-3);
@@ -1187,6 +1198,8 @@ main {
 }
 
 .nowBadge {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-style: normal;
   font-size: 10px;
   font-weight: 800;
@@ -1342,11 +1355,11 @@ main {
 
 /* ---------- Yen converter ---------- */
 .fx {
-  margin-bottom: 12px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
   background: var(--paper);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
 }
 
 .fxRow {
@@ -1539,4 +1552,79 @@ main {
   .actions {
     justify-content: flex-start;
   }
+}
+
+/* 날짜 탭 예보 */
+.tabWx {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.tabWx svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 날짜 제목 아래 예보 한 줄 */
+.fcLine {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--indigo-2);
+}
+
+.fcIcon {
+  display: grid;
+}
+
+.fcIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* 아이콘만 있는 버튼 */
+.btn.iconOnly {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.actions {
+  gap: 4px;
+}
+
+.mapcode {
+  padding: 0 8px;
+  gap: 3px;
+}
+
+.actions .btn.primary {
+  padding: 0 9px;
+}
+
+/* 환율 계산기 얇게 */
+.fxRow label {
+  height: 36px;
+}
+
+.fxRow b {
+  font-size: 17px;
+}
+
+.fxQuick {
+  margin-top: 6px;
+}
+
+.fxQuick button {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
 }
