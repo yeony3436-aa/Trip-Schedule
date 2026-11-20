@@ -39,6 +39,8 @@ import {
   TrainFront,
   Bus,
   ArrowRight,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   days,
@@ -52,11 +54,9 @@ import {
   buys,
   cards,
   coupons,
-  FLIGHT_OUT,
   weatherSpots,
   legs,
   transitPay,
-  type WeatherSpot,
   type Deal,
   type Kind,
   type Place,
@@ -231,42 +231,38 @@ const wmo = (c: number): [React.ReactNode, string] =>
                 ? [<CloudSnow />, "눈"]
                 : [<CloudLightning />, "뇌우"];
 
-type Daily = {
-  daily?: {
-    weather_code: number[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    precipitation_probability_max?: number[];
-    precipitation_sum?: number[];
-  };
+type Live = {
+  current?: { temperature_2m: number; weather_code: number; time: string };
+  daily?: { temperature_2m_max: number[]; temperature_2m_min: number[] };
 };
 
-function Weather({ spot }: { spot: WeatherSpot }) {
-  const daysLeft = Math.ceil((new Date(spot.date + "T00:00:00+09:00").getTime() - Date.now()) / 864e5);
-  const isForecast = daysLeft <= 15;
-  const lastYear = String(Number(spot.date.slice(0, 4)) - 1) + spot.date.slice(4);
-  const base = `latitude=${spot.lat}&longitude=${spot.lon}&timezone=Asia%2FTokyo`;
-  const url = isForecast
-    ? `https://api.open-meteo.com/v1/forecast?${base}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&start_date=${spot.date}&end_date=${spot.date}`
-    : `https://archive-api.open-meteo.com/v1/archive?${base}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&start_date=${lastYear}&end_date=${lastYear}`;
-  const data = useCachedFetch<Daily>(url, isForecast ? 3 * 3600e3 : 30 * 864e5);
-  const d = data?.daily;
-  if (!d?.weather_code?.length) return <div className="weather loading">{spot.place} 날씨 불러오는 중…</div>;
-  const [icon, label] = wmo(d.weather_code[0]);
-  const rain = isForecast
-    ? `강수 ${d.precipitation_probability_max?.[0] ?? 0}%`
-    : `강수 ${d.precipitation_sum?.[0] ?? 0}mm`;
+/** 여행지 3곳의 지금 날씨 (Open-Meteo, 10분마다 갱신) */
+function LiveWeather() {
+  const lat = weatherSpots.map((s) => s.lat).join(",");
+  const lon = weatherSpots.map((s) => s.lon).join(",");
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=Asia%2FTokyo`;
+  const data = useCachedFetch<Live[] | Live>(url, 10 * 60e3);
+  const list = Array.isArray(data) ? data : data ? [data] : [];
   return (
-    <div className="weather">
-      <span className="wIcon">{icon}</span>
-      <b>
-        {Math.round(d.temperature_2m_max[0])}° / {Math.round(d.temperature_2m_min[0])}°
-      </b>
-      <span>
-        {spot.place} · {label} · {rain}
-      </span>
-      <em>{isForecast ? "예보" : "작년 같은 날"}</em>
-    </div>
+    <section className="liveWeather">
+      {weatherSpots.map((s, i) => {
+        const w = list[i];
+        const [icon, label] = w?.current ? wmo(w.current.weather_code) : [<Cloud />, "…"];
+        return (
+          <div className="wCity" key={s.place}>
+            <small>{s.place}</small>
+            <div className="wNow">
+              <span className="wIcon">{icon}</span>
+              <b>{w?.current ? Math.round(w.current.temperature_2m) + "°" : "–"}</b>
+            </div>
+            <span className="wSub">
+              {label}
+              {w?.daily && ` · ${Math.round(w.daily.temperature_2m_max[0])}°/${Math.round(w.daily.temperature_2m_min[0])}°`}
+            </span>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
@@ -318,10 +314,33 @@ function Seg<T extends string>({ value, set, items }: { value: T; set: (v: T) =>
 
 /* ---------------- 일정 ---------------- */
 
+/** 현재 일본 시간 (분 단위로 갱신) */
+function useJstNow() {
+  const calc = () => {
+    const d = new Date(Date.now() + 9 * 3600e3).toISOString();
+    return { iso: d.slice(0, 10), hm: d.slice(11, 16) };
+  };
+  const [now, setNow] = useState(calc);
+  useEffect(() => {
+    const t = setInterval(() => setNow(calc()), 60e3);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
 function Days() {
+  const now = useJstNow();
+  const todayIdx = days.findIndex((x) => x.iso === now.iso);
   const [day, setDay] = usePersist("day", 0);
   const [open, setOpen] = useState<number | null>(null);
+  // 여행 기간에는 열 때마다 오늘 날짜로
+  useEffect(() => {
+    if (todayIdx >= 0) setDay(todayIdx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayIdx]);
   const d = days[day];
+  // 오늘이면 지금 시간에 해당하는 일정 (시작 시간이 지난 마지막 항목)
+  const nowIdx = day === todayIdx ? d.items.reduce((acc, x, i) => (x.time <= now.hm ? i : acc), -1) : -1;
   return (
     <>
       <div className="dayPicker">
@@ -334,7 +353,7 @@ function Days() {
               setOpen(null);
             }}
           >
-            <span>DAY {i + 1}</span>
+            <span>{i === todayIdx ? "TODAY" : `DAY ${i + 1}`}</span>
             <b>{x.date}</b>
           </button>
         ))}
@@ -344,17 +363,15 @@ function Days() {
         <h2>{d.title}</h2>
         <span className="goal">{d.goal}</span>
       </section>
-      <Weather spot={weatherSpots[day]} />
-      <p className="dayTip">
-        <Lightbulb size={14} />
-        {d.tip}
-      </p>
 
       <ol className="timeline">
         {d.items.map((x, i) => {
           const isOpen = open === i;
           return (
-            <li key={x.time + x.title} className={"k-" + x.kind + (isOpen ? " open" : "")}>
+            <li
+              key={x.time + x.title}
+              className={"k-" + x.kind + (isOpen ? " open" : "") + (i === nowIdx ? " now" : "") + (nowIdx > i ? " past" : "")}
+            >
               <div className="node">{kindIcon[x.kind]}</div>
               <div className="card">
                 <button className="cardMain" onClick={() => setOpen(isOpen ? null : i)}>
@@ -363,6 +380,7 @@ function Days() {
                     <b>
                       {x.title}
                       {x.pick && <em className="pick">맛집</em>}
+                      {i === nowIdx && <em className="nowBadge">지금</em>}
                     </b>
                     {x.note && <small>{x.note}</small>}
                     {x.warn && (
@@ -387,6 +405,20 @@ function Days() {
           );
         })}
       </ol>
+
+      {d.notes && (
+        <section className="dayNotes">
+          <h3>
+            <Lightbulb size={14} />
+            참고
+          </h3>
+          <ul>
+            {d.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }
@@ -604,13 +636,108 @@ function Deals() {
   );
 }
 
+type Expense = { id: number; day: string; memo: string; yen: number };
+
+const won = (n: number) => "₩" + Math.round(n).toLocaleString("ko-KR");
+
+function Expenses() {
+  const rates = useCachedFetch<Rates>("https://open.er-api.com/v6/latest/JPY", 6 * 3600e3);
+  const rate = rates?.rates?.KRW ?? 0;
+  const now = useJstNow();
+  const [list, setList] = usePersist<Expense[]>("expenses", []);
+  const defaultDay = days.find((d) => d.iso === now.iso)?.iso ?? days[0].iso;
+  const [day, setDay] = useState(defaultDay);
+  const [memo, setMemo] = useState("");
+  const [yen, setYen] = useState("");
+  const add = () => {
+    const n = Number(yen);
+    if (!n) return;
+    setList([...list, { id: Date.now(), day, memo: memo.trim() || "지출", yen: n }]);
+    setMemo("");
+    setYen("");
+  };
+  const total = list.reduce((s, e) => s + e.yen, 0);
+  return (
+    <section className="panel">
+      <div className="expTotal">
+        <small>총 지출</small>
+        <b>¥{total.toLocaleString()}</b>
+        {rate > 0 && <span>{won(total * rate)}</span>}
+      </div>
+
+      <div className="expForm">
+        <select value={day} onChange={(e) => setDay(e.target.value)} aria-label="날짜">
+          {days.map((d) => (
+            <option key={d.iso} value={d.iso}>
+              {d.date}
+            </option>
+          ))}
+        </select>
+        <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="어디에 썼나요" />
+        <input
+          value={yen}
+          onChange={(e) => setYen(e.target.value.replace(/[^0-9]/g, ""))}
+          inputMode="numeric"
+          placeholder="엔"
+          onKeyDown={(e) => e.key === "Enter" && add()}
+        />
+        <button className="btn primary" onClick={add} aria-label="추가">
+          <Plus size={15} />
+        </button>
+      </div>
+
+      {days.map((d) => {
+        const items = list.filter((e) => e.day === d.iso);
+        if (!items.length) return null;
+        const sum = items.reduce((s, e) => s + e.yen, 0);
+        return (
+          <div className="group" key={d.iso}>
+            <h3 className="expDay">
+              {d.date}
+              <span>
+                ¥{sum.toLocaleString()}
+                {rate > 0 && ` · ${won(sum * rate)}`}
+              </span>
+            </h3>
+            {items.map((e) => (
+              <div className="expRow" key={e.id}>
+                <span className="expMemo">{e.memo}</span>
+                <span className="expYen">
+                  ¥{e.yen.toLocaleString()}
+                  {rate > 0 && <small>{won(e.yen * rate)}</small>}
+                </span>
+                <button
+                  className="btn ghostIcon"
+                  onClick={() => setList(list.filter((x) => x.id !== e.id))}
+                  aria-label="삭제"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      {!list.length && <p className="fine">아직 기록이 없어요. 쓴 금액을 엔화로 적으면 원화로 바꿔 보여줘요.</p>}
+    </section>
+  );
+}
+
 function Shop() {
-  const [view, setView] = usePersist<"list" | "deal">("shopView", "list");
+  const [view, setView] = usePersist<"list" | "money" | "deal">("shopView", "list");
   return (
     <>
       <YenConverter />
-      <Seg value={view} set={setView} items={[["list", "쇼핑 리스트"], ["deal", "카드·쿠폰"]]} />
-      {view === "list" ? <BuyList /> : <Deals />}
+      <Seg
+        value={view}
+        set={setView}
+        items={[
+          ["list", "쇼핑 리스트"],
+          ["money", "가계부"],
+          ["deal", "카드·쿠폰"],
+        ]}
+      />
+      {view === "list" ? <BuyList /> : view === "money" ? <Expenses /> : <Deals />}
     </>
   );
 }
@@ -670,6 +797,7 @@ function TaxGuide() {
 function Checklist() {
   const [done, setDone] = usePersist<string[]>("prep", []);
   const toggle = (t: string) => setDone(done.includes(t) ? done.filter((x) => x !== t) : [...done, t]);
+  const [guide, setGuide] = useState<string | null>(null);
   const n = prep.filter((p) => done.includes(p.title)).length;
   return (
     <section className="panel">
@@ -683,22 +811,38 @@ function Checklist() {
       </div>
       {prep.map((x) => {
         const on = done.includes(x.title);
+        const showGuide = guide === x.title;
         return (
-          <div className={"checkRow" + (on ? " checked" : "")} key={x.title}>
-            <button className="check" onClick={() => toggle(x.title)} aria-label="완료 표시">
-              {on ? <CircleCheck /> : <span />}
-            </button>
-            <span className="prepIcon">{prepIcon[x.icon]}</span>
-            <div className="checkText">
-              <b>{x.title}</b>
-              <small>{x.desc}</small>
+          <React.Fragment key={x.title}>
+            <div className={"checkRow" + (on ? " checked" : "")}>
+              <button className="check" onClick={() => toggle(x.title)} aria-label="완료 표시">
+                {on ? <CircleCheck /> : <span />}
+              </button>
+              <span className="prepIcon">{prepIcon[x.icon]}</span>
+              <div className="checkText">
+                <b>{x.title}</b>
+                <small>{x.desc}</small>
+              </div>
+              {x.guide && (
+                <button className={"btn" + (showGuide ? " primary" : "")} onClick={() => setGuide(showGuide ? null : x.title)}>
+                  방법
+                  <ChevronDown size={13} className={showGuide ? "flip" : ""} />
+                </button>
+              )}
+              {x.url && (
+                <a className="btn" href={x.url} target="_blank" rel="noreferrer" aria-label="열기">
+                  <ExternalLink size={13} />
+                </a>
+              )}
             </div>
-            {x.url && (
-              <a className="btn" href={x.url} target="_blank" rel="noreferrer" aria-label="열기">
-                <ExternalLink size={13} />
-              </a>
+            {showGuide && (
+              <ol className="guide">
+                {x.guide!.map((g) => (
+                  <li key={g}>{g}</li>
+                ))}
+              </ol>
             )}
-          </div>
+          </React.Fragment>
         );
       })}
     </section>
@@ -736,12 +880,11 @@ function App() {
       <header className="hero">
         <div className="heroInner">
           <h1>후쿠오카 가족여행</h1>
-          <p>
-            12.27 09:30 도착 · 12.29 {FLIGHT_OUT} 출발
-          </p>
         </div>
         <div className="sun" aria-hidden />
       </header>
+
+      <LiveWeather />
 
       <nav className="tabs">
         {tabs.map((t) => (
@@ -761,6 +904,15 @@ function App() {
       </main>
     </div>
   );
+}
+
+// 배포 버전에서만 오프라인 지원 켜기 (개발 중에는 캐시 때문에 헷갈리지 않게)
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* 지원 안 하는 브라우저는 그냥 온라인으로 동작 */
+    });
+  });
 }
 
 createRoot(document.getElementById("root")!).render(

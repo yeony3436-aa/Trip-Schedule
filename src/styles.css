@@ -48,7 +48,7 @@ a {
 
 .app {
   min-height: 100vh;
-  padding-bottom: 48px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
 /* ---------- Hero ---------- */
@@ -59,7 +59,7 @@ a {
   background:
     radial-gradient(120% 90% at 90% 0%, rgba(210, 85, 63, 0.55), transparent 55%),
     linear-gradient(160deg, #14263f 0%, var(--indigo) 50%, #3b5f8a 100%);
-  padding: 34px 20px 50px;
+  padding: 30px 20px 52px;
 }
 
 .heroInner {
@@ -107,22 +107,106 @@ a {
   opacity: 0.85;
 }
 
-/* ---------- Tabs ---------- */
-.tabs {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  display: flex;
-  gap: 2px;
+/* ---------- Live weather (헤더 아래 겹침) ---------- */
+.liveWeather {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
   width: calc(100% - 32px);
   max-width: 720px;
-  margin: -24px auto 0;
-  padding: 5px;
-  background: rgba(255, 253, 249, 0.94);
-  backdrop-filter: blur(10px);
+  margin: -28px auto 0;
+  padding: 12px 10px 8px;
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: var(--shadow);
+}
+
+.wCity {
+  text-align: center;
+  min-width: 0;
+}
+
+.wCity + .wCity {
+  border-left: 1px solid var(--line);
+}
+
+.wCity small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+.wNow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 2px;
+  color: var(--indigo);
+}
+
+.wNow b {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+}
+
+.wIcon {
+  display: grid;
+}
+
+.wIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.wSub {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wTime {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  text-align: center;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+/* ---------- Tabs (하단 고정) ---------- */
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 249, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 20px -14px rgba(35, 32, 29, 0.35);
+}
+
+@media (min-width: 720px) {
+  .tabs {
+    bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding-bottom: 6px;
+  }
 }
 
 .tabs button {
@@ -896,6 +980,185 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.guide {
+  margin: 0 0 10px;
+  padding: 10px 12px 10px 30px;
+  border-radius: 12px;
+  background: var(--teal-soft);
+  animation: drop 0.18s ease-out;
+}
+
+.guide li {
+  margin-bottom: 5px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.guide li:last-child {
+  margin-bottom: 0;
+}
+
+.flip {
+  transform: rotate(180deg);
+}
+
+/* ---------- Day notes (일정 맨 아래) ---------- */
+.dayNotes {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--teal-soft);
+}
+
+.dayNotes h3 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--teal);
+}
+
+.dayNotes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.dayNotes li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* ---------- Now highlight ---------- */
+.timeline li.past .cardMain {
+  opacity: 0.55;
+}
+
+.timeline li.now .cardMain {
+  background: var(--paper);
+  border-color: var(--vermilion);
+  box-shadow: 0 0 0 3px var(--vermilion-soft);
+}
+
+.timeline li.now .node {
+  background: var(--vermilion);
+  color: #fff;
+}
+
+.nowBadge {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+}
+
+/* ---------- Expenses ---------- */
+.expTotal {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.expTotal small {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+
+.expTotal b {
+  font-size: 24px;
+  letter-spacing: -0.5px;
+}
+
+.expTotal span {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--vermilion);
+}
+
+.expForm {
+  display: grid;
+  grid-template-columns: 92px 1fr 76px 36px;
+  gap: 6px;
+}
+
+.expForm select,
+.expForm input {
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--soft);
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.expForm .btn {
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+.expDay {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.expDay span {
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0;
+}
+
+.expRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.group h3 + .expRow {
+  border-top: 0;
+}
+
+.expMemo {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.expYen {
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.expYen small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.ghostIcon {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+  color: var(--ink-3);
 }
 
 /* ---------- Weather ---------- */
