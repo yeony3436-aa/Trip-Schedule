@@ -28,6 +28,17 @@ import {
   CarFront,
   UtensilsCrossed,
   Lightbulb,
+  Sun,
+  CloudSun,
+  Cloud,
+  CloudFog,
+  CloudDrizzle,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  TrainFront,
+  Bus,
+  ArrowRight,
 } from "lucide-react";
 import {
   days,
@@ -42,6 +53,10 @@ import {
   cards,
   coupons,
   FLIGHT_OUT,
+  weatherSpots,
+  legs,
+  transitPay,
+  type WeatherSpot,
   type Deal,
   type Kind,
   type Place,
@@ -170,6 +185,125 @@ function PlaceBlock({ k }: { k: string }) {
   );
 }
 
+/* ---------------- API: 날씨 · 환율 ---------------- */
+
+/** 응답을 localStorage에 캐시해서 오프라인에서도 마지막 값을 보여줌 */
+function useCachedFetch<T>(url: string, ttlMs: number) {
+  const key = "api:" + url;
+  const [data, setData] = useState<T | null>(() => store.get<{ t: number; v: T } | null>(key, null)?.v ?? null);
+  useEffect(() => {
+    const cached = store.get<{ t: number; v: T } | null>(key, null);
+    if (cached && Date.now() - cached.t < ttlMs) {
+      setData(cached.v);
+      return;
+    }
+    let alive = true;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((v: T) => {
+        store.set(key, { t: Date.now(), v });
+        if (alive) setData(v);
+      })
+      .catch(() => {
+        /* 네트워크 실패 시 캐시 값 유지 */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [url, key, ttlMs]);
+  return data;
+}
+
+const wmo = (c: number): [React.ReactNode, string] =>
+  c === 0
+    ? [<Sun />, "맑음"]
+    : c <= 2
+      ? [<CloudSun />, "구름 조금"]
+      : c === 3
+        ? [<Cloud />, "흐림"]
+        : c <= 48
+          ? [<CloudFog />, "안개"]
+          : c <= 57
+            ? [<CloudDrizzle />, "이슬비"]
+            : c <= 67 || (c >= 80 && c <= 82)
+              ? [<CloudRain />, "비"]
+              : c <= 77 || c === 85 || c === 86
+                ? [<CloudSnow />, "눈"]
+                : [<CloudLightning />, "뇌우"];
+
+type Daily = {
+  daily?: {
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max?: number[];
+    precipitation_sum?: number[];
+  };
+};
+
+function Weather({ spot }: { spot: WeatherSpot }) {
+  const daysLeft = Math.ceil((new Date(spot.date + "T00:00:00+09:00").getTime() - Date.now()) / 864e5);
+  const isForecast = daysLeft <= 15;
+  const lastYear = String(Number(spot.date.slice(0, 4)) - 1) + spot.date.slice(4);
+  const base = `latitude=${spot.lat}&longitude=${spot.lon}&timezone=Asia%2FTokyo`;
+  const url = isForecast
+    ? `https://api.open-meteo.com/v1/forecast?${base}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&start_date=${spot.date}&end_date=${spot.date}`
+    : `https://archive-api.open-meteo.com/v1/archive?${base}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&start_date=${lastYear}&end_date=${lastYear}`;
+  const data = useCachedFetch<Daily>(url, isForecast ? 3 * 3600e3 : 30 * 864e5);
+  const d = data?.daily;
+  if (!d?.weather_code?.length) return <div className="weather loading">{spot.place} 날씨 불러오는 중…</div>;
+  const [icon, label] = wmo(d.weather_code[0]);
+  const rain = isForecast
+    ? `강수 ${d.precipitation_probability_max?.[0] ?? 0}%`
+    : `강수 ${d.precipitation_sum?.[0] ?? 0}mm`;
+  return (
+    <div className="weather">
+      <span className="wIcon">{icon}</span>
+      <b>
+        {Math.round(d.temperature_2m_max[0])}° / {Math.round(d.temperature_2m_min[0])}°
+      </b>
+      <span>
+        {spot.place} · {label} · {rain}
+      </span>
+      <em>{isForecast ? "예보" : "작년 같은 날"}</em>
+    </div>
+  );
+}
+
+type Rates = { rates?: { KRW?: number }; time_last_update_unix?: number };
+
+function YenConverter() {
+  const data = useCachedFetch<Rates>("https://open.er-api.com/v6/latest/JPY", 6 * 3600e3);
+  const [yen, setYen] = usePersist("yen", 1000);
+  const rate = data?.rates?.KRW;
+  return (
+    <div className="fx">
+      <div className="fxRow">
+        <label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={yen || ""}
+            onChange={(e) => setYen(Number(e.target.value))}
+            placeholder="0"
+          />
+          <span>엔</span>
+        </label>
+        <ArrowRight size={16} />
+        <b>{rate ? "₩" + Math.round(yen * rate).toLocaleString("ko-KR") : "…"}</b>
+      </div>
+      <div className="fxQuick">
+        {[1000, 5000, 10000, 30000].map((v) => (
+          <button key={v} onClick={() => setYen(v)} className={yen === v ? "on" : ""}>
+            {v.toLocaleString()}
+          </button>
+        ))}
+        {rate && <small>100엔 = ₩{Math.round(rate * 100).toLocaleString("ko-KR")}</small>}
+      </div>
+    </div>
+  );
+}
+
 function Seg<T extends string>({ value, set, items }: { value: T; set: (v: T) => void; items: [T, string][] }) {
   return (
     <div className="seg">
@@ -210,6 +344,7 @@ function Days() {
         <h2>{d.title}</h2>
         <span className="goal">{d.goal}</span>
       </section>
+      <Weather spot={weatherSpots[day]} />
       <p className="dayTip">
         <Lightbulb size={14} />
         {d.tip}
@@ -257,6 +392,65 @@ function Days() {
 }
 
 /* ---------------- 운전 ---------------- */
+
+const modeIcon = { subway: <TrainFront size={14} />, walk: <Footprints size={14} />, bus: <Bus size={14} /> };
+
+function Transit() {
+  const groups = [...new Set(legs.map((l) => l.day))];
+  return (
+    <section className="panel">
+      <div className="payBox">
+        {transitPay.map((p) => (
+          <div key={p.title}>
+            <b>{p.title}</b>
+            <small>{p.text}</small>
+          </div>
+        ))}
+      </div>
+      {groups.map((g) => (
+        <div className="group" key={g}>
+          <h3>{g}</h3>
+          {legs
+            .filter((l) => l.day === g)
+            .map((l) => (
+              <div className="leg" key={l.time + l.to} style={{ "--lc": l.color ?? "var(--teal)" } as React.CSSProperties}>
+                <div className="legHead">
+                  <time>{l.time}</time>
+                  <b>
+                    {l.from} <ArrowRight size={13} /> {l.to}
+                  </b>
+                </div>
+                <div className="legLine">
+                  <span className="lineChip">
+                    {modeIcon[l.mode]}
+                    {l.line ?? "도보"}
+                  </span>
+                  {l.dir && <span className="dirChip">{l.dir}</span>}
+                  {l.fare && <span className="fare">{l.fare}</span>}
+                </div>
+                {l.ride && <small className="ride">{l.ride}</small>}
+                <ul>
+                  {l.steps.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function Move() {
+  const [view, setView] = usePersist<"car" | "transit">("moveView", "car");
+  return (
+    <>
+      <Seg value={view} set={setView} items={[["car", "렌터카"], ["transit", "대중교통"]]} />
+      {view === "car" ? <Drive /> : <Transit />}
+    </>
+  );
+}
 
 function Drive() {
   return (
@@ -414,6 +608,7 @@ function Shop() {
   const [view, setView] = usePersist<"list" | "deal">("shopView", "list");
   return (
     <>
+      <YenConverter />
       <Seg value={view} set={setView} items={[["list", "쇼핑 리스트"], ["deal", "카드·쿠폰"]]} />
       {view === "list" ? <BuyList /> : <Deals />}
     </>
@@ -525,7 +720,7 @@ function Prep() {
 type Tab = "days" | "drive" | "food" | "shop" | "prep";
 const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "days", label: "일정", icon: <CalendarDays /> },
-  { id: "drive", label: "운전", icon: <Car /> },
+  { id: "drive", label: "이동", icon: <Car /> },
   { id: "food", label: "맛집", icon: <UtensilsCrossed /> },
   { id: "shop", label: "쇼핑", icon: <ShoppingBag /> },
   { id: "prep", label: "준비물", icon: <ClipboardCheck /> },
@@ -559,7 +754,7 @@ function App() {
 
       <main>
         {tab === "days" && <Days />}
-        {tab === "drive" && <Drive />}
+        {tab === "drive" && <Move />}
         {tab === "food" && <Food />}
         {tab === "shop" && <Shop />}
         {tab === "prep" && <Prep />}

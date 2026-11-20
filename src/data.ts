@@ -435,3 +435,127 @@ export const coupons: Deal[] = [
     url: "https://www.jrhakatacity.com/translation/coupon/",
   },
 ];
+
+/* ---------------- 날씨 (Open-Meteo) ---------------- */
+
+export type WeatherSpot = { date: string; place: string; lat: number; lon: number };
+
+/** 날짜별로 그날 주로 머무는 곳 */
+export const weatherSpots: WeatherSpot[] = [
+  { date: "2026-12-27", place: "유후인", lat: 33.263, lon: 131.356 },
+  { date: "2026-12-28", place: "벳푸", lat: 33.317, lon: 131.477 },
+  { date: "2026-12-29", place: "후쿠오카", lat: 33.59, lon: 130.401 },
+];
+
+/* ---------------- 대중교통 ---------------- */
+
+export type Leg = {
+  day: string;
+  time: string;
+  from: string;
+  to: string;
+  mode: "subway" | "walk" | "bus";
+  /** 노선 이름과 색 */
+  line?: string;
+  color?: string;
+  /** 타는 방향 (승강장 표지) */
+  dir?: string;
+  ride?: string;
+  fare?: string;
+  steps: string[];
+};
+
+export const transitPay: { title: string; text: string }[] = [
+  { title: "카드 터치로 타기 (추천)", text: "컨택트리스 표시가 있는 비자·마스터·JCB 카드를 개찰구 단말기에 대면 돼요. 1인 1카드 · 하루 최대 640엔" },
+  { title: "표 사기", text: "발권기에서 한국어 선택 → 노선도에서 요금 확인 → 금액 버튼 → 현금 넣기" },
+  { title: "노선 색", text: "공항선 주황색 · 나나쿠마선 초록색" },
+];
+
+export const legs: Leg[] = [
+  {
+    day: "DAY 2",
+    time: "17:00",
+    from: "숙소 (공항 근처)",
+    to: "하카타역",
+    mode: "subway",
+    line: "공항선",
+    color: "#f08200",
+    dir: "博多·天神 방면",
+    ride: "2정거장 · 5분",
+    fare: "260엔",
+    steps: ["후쿠오카공항역(국내선 터미널 지하)에서 탑승", "博多(하카타)에서 내려 하카타 출구(博多口) → KITTE 9층"],
+  },
+  {
+    day: "DAY 2",
+    time: "20:30",
+    from: "하카타역",
+    to: "숙소",
+    mode: "subway",
+    line: "공항선",
+    color: "#f08200",
+    dir: "福岡空港 방면",
+    ride: "2정거장 · 5분",
+    fare: "260엔",
+    steps: ["종점 福岡空港(후쿠오카공항)에서 하차"],
+  },
+  {
+    day: "DAY 3",
+    time: "08:40",
+    from: "숙소",
+    to: "하카타역",
+    mode: "subway",
+    line: "공항선",
+    color: "#f08200",
+    dir: "博多·天神 방면",
+    ride: "2정거장 · 5분",
+    fare: "260엔",
+    steps: ["캐리어는 숙소에 맡기고 출발"],
+  },
+  {
+    day: "DAY 3",
+    time: "10:50",
+    from: "하카타역",
+    to: "캐널시티",
+    mode: "subway",
+    line: "나나쿠마선",
+    color: "#00a33e",
+    dir: "橋本 방면",
+    ride: "1정거장 · 3분",
+    fare: "210엔",
+    steps: ["역 안에서 초록색 표지 따라 나나쿠마선으로", "櫛田神社前(구시다진자마에)에서 내려 도보 2분", "걸어가도 15분이에요"],
+  },
+  {
+    day: "DAY 3",
+    time: "11:50",
+    from: "캐널시티",
+    to: "이치란 → 돈키호테 → 린트",
+    mode: "walk",
+    ride: "도보 10분 → 3분 → 12분",
+    steps: ["나카스 강변을 따라 걷는 길", "린트는 텐진지하상가 안이라 비가 와도 괜찮아요"],
+  },
+  {
+    day: "DAY 3",
+    time: "13:55",
+    from: "텐진",
+    to: "후쿠오카공항 (숙소)",
+    mode: "subway",
+    line: "공항선",
+    color: "#f08200",
+    dir: "福岡空港 방면",
+    ride: "5정거장 · 11분",
+    fare: "260엔",
+    steps: ["텐진지하상가에서 바로 天神(텐진)역으로", "종점 福岡空港에서 하차 → 숙소에서 짐 찾기"],
+  },
+  {
+    day: "DAY 3",
+    time: "14:20",
+    from: "국내선 터미널",
+    to: "국제선 터미널",
+    mode: "bus",
+    line: "무료 연결버스",
+    color: "#2f5683",
+    ride: "약 10~15분 · 10~15분 간격",
+    fare: "무료",
+    steps: ["국내선 터미널 1층 연결버스 승차장에서 탑승", "짐이 많으면 택시(5~10분)가 편해요"],
+  },
+];
