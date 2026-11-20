@@ -106,16 +106,9 @@ export const places: Record<string, Place> = {
     meta: "10:00–18:00 · 번호표 대기",
     mapcode: "46 522 403*20",
     tel: "0977-66-3775",
-    alt: ["hyotan", "okamotoya", "toyotsune"],
+    alt: ["hyotan", "toyotsune"],
   },
   hyotan: { fit: "동선 OK · 반납까지 이동 +2분", name: "효탄온천 식당", q: "ひょうたん温泉 別府", meta: "차로 3분 · 지옥찜 정식", mapcode: "46 522 294*24", tel: "0977-66-0527" },
-  okamotoya: { fit: "동선 OK · 반납까지 이동 +6분 · 고속도로 가는 길",
-    name: "오카모토야 매점",
-    q: "岡本屋売店 明礬",
-    meta: "08:30–18:30 · 지옥찜 푸딩·달걀샌드 · 고속도로 가는 길",
-    mapcode: "46 519 708*56",
-    tel: "0977-66-6115",
-  },
   toyotsune: { fit: "반납까지 이동 +20분 · 치노이케 지옥을 빼면 반납 시간 그대로",
     name: "토요츠네 본점",
     q: "とよ常 本店 別府",
@@ -180,7 +173,7 @@ export const places: Record<string, Place> = {
   kirakira: {
     name: "키라키라돈키 (3층)",
     q: "キラキラドンキ 博多マルイ店",
-    meta: "SNS 인기 과자·한국 화장품·소품 위주의 작은 돈키호테 · 약·대량 과자는 내일 나카스점에서",
+    meta: "SNS 인기 과자·한국 화장품·소품",
   },
   bookoff: {
     short: "북오프",
@@ -268,7 +261,6 @@ export const days: Day[] = [
       {
         time: "19:00",
         title: "하카타 마루이 구경",
-        note: "저녁 먹은 건물 그대로 · 7층 → 6층 → 3층 → 2층 순서로 · 오늘은 구경 위주, 큰 쇼핑은 내일",
         kind: "shop",
         place: "marui",
         extra: ["surugaya", "kirakira", "pokemon"],
@@ -296,7 +288,7 @@ export const days: Day[] = [
       {
         time: "12:40",
         title: "돈키호테 나카스",
-        note: "약·과자·선물은 여기서 한 번에 · 여권 + Visit Japan Web 면세 QR",
+        note: "여권 + Visit Japan Web 면세 QR",
         kind: "shop",
         place: "donki",
         warn: "먹을 간식은 따로 계산",
