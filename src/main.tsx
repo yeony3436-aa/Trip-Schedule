@@ -153,13 +153,12 @@ function Actions({ p }: { p: Place }) {
     <div className="actions">
       {p.mapcode && <CopyCode code={p.mapcode} />}
       {p.tel && (
-        <a className="btn" href={"tel:" + p.tel} aria-label="전화">
+        <a className="btn iconOnly" href={"tel:" + p.tel} aria-label="전화">
           <Phone size={13} />
         </a>
       )}
-      <a className="btn" href={mapUrl(p)} target="_blank" rel="noreferrer">
-        <MapPin size={13} />
-        지도
+      <a className="btn iconOnly" href={mapUrl(p)} target="_blank" rel="noreferrer" aria-label="지도" title="지도">
+        <MapPin size={14} />
       </a>
       <a className="btn primary" href={dirUrl(p)} target="_blank" rel="noreferrer">
         <Navigation2 size={13} />
@@ -203,6 +202,7 @@ function useCachedFetch<T>(url: string, ttlMs: number) {
   const key = "api:" + url;
   const [data, setData] = useState<T | null>(() => store.get<{ t: number; v: T } | null>(key, null)?.v ?? null);
   useEffect(() => {
+    if (!url) return; // 아직 부를 필요 없음
     const cached = store.get<{ t: number; v: T } | null>(key, null);
     if (cached && Date.now() - cached.t < ttlMs) {
       setData(cached.v);
@@ -273,6 +273,44 @@ function LiveWeather() {
   );
 }
 
+type DayForecast = { code: number; max: number; min: number; pop: number } | null;
+
+type Daily16 = {
+  daily?: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+  };
+};
+
+/** 여행 날짜 예보: 16일 안으로 들어오면 날짜별로, 아니면 전부 null */
+function useTripForecast(): DayForecast[] {
+  const daysLeft = Math.floor((new Date(days[0].iso + "T00:00:00+09:00").getTime() - Date.now()) / 864e5);
+  const inRange = daysLeft <= 15;
+  const lat = weatherSpots.map((s) => s.lat).join(",");
+  const lon = weatherSpots.map((s) => s.lon).join(",");
+  const url = inRange
+    ? `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=Asia%2FTokyo`
+    : "";
+  const data = useCachedFetch<Daily16[] | Daily16>(url, 3 * 3600e3);
+  const list = Array.isArray(data) ? data : data ? [data] : [];
+  return days.map((d) => {
+    if (!inRange) return null;
+    const spot = weatherSpots.findIndex((s) => s.place === d.wx);
+    const daily = list[spot]?.daily;
+    const i = daily?.time.indexOf(d.iso) ?? -1;
+    if (!daily || i < 0) return null;
+    return {
+      code: daily.weather_code[i],
+      max: Math.round(daily.temperature_2m_max[i]),
+      min: Math.round(daily.temperature_2m_min[i]),
+      pop: daily.precipitation_probability_max[i] ?? 0,
+    };
+  });
+}
+
 type Rates = { rates?: { KRW?: number }; time_last_update_unix?: number };
 
 function YenConverter() {
@@ -337,7 +375,7 @@ function useJstNow() {
 
 /** 그날 동선 전체를 지도 한 장으로 (키 없는 구글맵 임베드) */
 function DayMap({ route }: { route: string[] }) {
-  const [show, setShow] = usePersist("mapOpen", true);
+  const [show, setShow] = useState(false);
   const qs = route.map((k) => places[k].q);
   const embed =
     "https://maps.google.com/maps?saddr=" +
@@ -378,7 +416,7 @@ function DayMap({ route }: { route: string[] }) {
   );
 }
 
-function Days({ day, todayIdx, nowHm }: { day: number; todayIdx: number; nowHm: string }) {
+function Days({ day, todayIdx, nowHm, fc }: { day: number; todayIdx: number; nowHm: string; fc: DayForecast }) {
   const [open, setOpen] = useState<number | null>(null);
   useEffect(() => setOpen(null), [day]);
   const d = days[day];
@@ -392,6 +430,12 @@ function Days({ day, todayIdx, nowHm }: { day: number; todayIdx: number; nowHm: 
           <Flag size={13} />
           {d.goal}
         </p>
+        {fc && (
+          <p className="fcLine">
+            <span className="fcIcon">{wmo(fc.code)[0]}</span>
+            {d.wx} 예보 · {wmo(fc.code)[1]} {fc.max}°/{fc.min}° · 비 {fc.pop}%
+          </p>
+        )}
       </section>
 
       <DayMap route={d.route} />
@@ -602,9 +646,8 @@ function BuyList() {
                     {on ? <CircleCheck /> : <span />}
                   </button>
                   <div className="checkText">
-                    <b>
-                      {b.name} <span className="jp">{b.jp}</span>
-                    </b>
+                    <b>{b.name}</b>
+                    <span className="jp">{b.jp}</span>
                     <small>
                       {b.where}
                       {b.note && " · " + b.note}
@@ -907,6 +950,7 @@ function App() {
   const now = useJstNow();
   const todayIdx = days.findIndex((x) => x.iso === now.iso);
   const [day, setDay] = usePersist("day", 0);
+  const forecast = useTripForecast();
   // 여행 기간에는 열 때마다 오늘 날짜로
   useEffect(() => {
     if (todayIdx >= 0) setDay(todayIdx);
@@ -929,6 +973,12 @@ function App() {
                 <button key={x.date} className={day === i ? "on" : ""} onClick={() => setDay(i)}>
                   <small>{i === todayIdx ? "TODAY" : `DAY ${i + 1}`}</small>
                   <b>{x.date}</b>
+                  {forecast[i] && (
+                    <span className="tabWx">
+                      {wmo(forecast[i]!.code)[0]}
+                      {forecast[i]!.max}°/{forecast[i]!.min}°
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -947,7 +997,7 @@ function App() {
       </nav>
 
       <main>
-        {tab === "days" && <Days day={day} todayIdx={todayIdx} nowHm={now.hm} />}
+        {tab === "days" && <Days day={day} todayIdx={todayIdx} nowHm={now.hm} fc={forecast[day]} />}
         {tab === "drive" && <Move />}
         {tab === "food" && <Food />}
         {tab === "shop" && <Shop />}

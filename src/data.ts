@@ -28,7 +28,7 @@ export type Item = {
   warn?: string;
 };
 
-export type Day = { date: string; iso: string; title: string; goal: string; notes?: string[]; route: string[]; items: Item[] };
+export type Day = { date: string; iso: string; title: string; goal: string; notes?: string[]; route: string[]; /** 예보를 볼 곳 (weatherSpots의 place) */ wx: string; items: Item[] };
 
 export const FLIGHT_OUT = "17:05";
 
@@ -167,6 +167,7 @@ export const days: Day[] = [
   {
     date: "12.27 일",
     iso: "2026-12-27",
+    wx: "유후인",
     route: ["rentPick", "dazaifu", "yfPark", "ryokan"],
     title: "다자이후 · 유후인",
     goal: "17:35 료칸 도착",
@@ -205,6 +206,7 @@ export const days: Day[] = [
   {
     date: "12.28 월",
     iso: "2026-12-28",
+    wx: "벳푸",
     route: ["kinrin", "umi", "mushi", "rentPick", "stay", "hakata"],
     title: "긴린코 · 벳푸 · 하카타",
     goal: "15:40 렌터카 반납",
@@ -236,6 +238,7 @@ export const days: Day[] = [
   {
     date: "12.29 화",
     iso: "2026-12-29",
+    wx: "후쿠오카",
     route: ["stay", "hakata", "canal", "ichiran", "donki", "lindt", "airport"],
     title: "하카타 쇼핑 · 귀국",
     goal: "14:40 공항 도착",
